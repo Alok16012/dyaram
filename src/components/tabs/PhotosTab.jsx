@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import { usePackage } from '../../context/PackageContext'
+import { Loader2, Upload, Images } from 'lucide-react'
 
 export default function PhotosTab({ active }) {
   const { library, uploadToLibrary, deleteLibraryPhoto } = usePackage()
@@ -27,7 +28,7 @@ export default function PhotosTab({ active }) {
       </p>
 
       <div className="upload-zone" onClick={() => !uploading && fileRef.current?.click()}>
-        <div className="upload-zone-icon">{uploading ? '⏳' : '📤'}</div>
+        <div className="upload-zone-icon">{uploading ? <Loader2 size={26} /> : <Upload size={26} />}</div>
         <p>{uploading ? 'Uploading…' : 'Click to upload photos'}</p>
         <p style={{ fontSize: 11, marginTop: 2 }}>JPG, PNG, WEBP</p>
         <input ref={fileRef} type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={handleUpload} />
@@ -36,8 +37,8 @@ export default function PhotosTab({ active }) {
       <div className="field">
         <label>Photo Type</label>
         <select className="glass-input" value={tagType} onChange={e => setTagType(e.target.value)}>
-          <option value="hotel">🏨 Hotel</option>
-          <option value="location">📍 Location / Scene</option>
+          <option value="hotel">Hotel</option>
+          <option value="location">Location / Scene</option>
         </select>
       </div>
       <div className="field">
@@ -49,7 +50,7 @@ export default function PhotosTab({ active }) {
       <div className="lib-grid">
         {library.length === 0 ? (
           <div className="empty-state" style={{ gridColumn: '1/-1' }}>
-            <div className="empty-state-icon">🖼️</div>
+            <div className="empty-state-icon"><Images size={26} strokeWidth={1.6} /></div>
             <p>No photos yet. Upload some!</p>
           </div>
         ) : library.map(p => (
@@ -57,7 +58,7 @@ export default function PhotosTab({ active }) {
             <img src={p.photo_url} alt={p.tag_name} loading="lazy" />
             <div className="lib-item-info">
               <span className="lib-item-name">{p.tag_name}</span>
-              <span className="lib-item-type">{p.tag_type === 'hotel' ? '🏨' : '📍'} {p.tag_type}</span>
+              <span className="lib-item-type">{p.tag_type}</span>
             </div>
             <button className="lib-item-del" onClick={() => deleteLibraryPhoto(p.id, p.photo_url)}>✕</button>
           </div>

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { usePackage } from '../context/PackageContext'
 import toast from 'react-hot-toast'
+import { Trash2, Hotel } from 'lucide-react'
 
 const MEALS = ['Stay', 'Breakfast', 'Lunch', 'Dinner']
 const THEME_OPTIONS = [
@@ -123,7 +124,7 @@ export default function DayCard({ day, idx }) {
           />
         </div>
         <div className="day-header-actions">
-          <button className="btn btn-danger btn-sm" onClick={e => { e.stopPropagation(); if (window.confirm('Remove this day?')) removeDay(idx) }}>🗑</button>
+          <button className="btn btn-danger btn-sm" onClick={e => { e.stopPropagation(); if (window.confirm('Remove this day?')) removeDay(idx) }}><Trash2 size={14} /></button>
           <span className={`day-chevron ${day._open ? 'open' : ''}`}>▾</span>
         </div>
       </div>
@@ -286,7 +287,7 @@ export default function DayCard({ day, idx }) {
                 <button className="photo-remove" onClick={e => { e.stopPropagation(); updateDay(idx, 'hotel_photo_url', null) }}>✕</button>
               </>
             ) : (
-              <div className="photo-slot-add">🏨</div>
+              <div className="photo-slot-add"><Hotel size={22} /></div>
             )}
           </div>
         </div>
@@ -297,7 +298,7 @@ export default function DayCard({ day, idx }) {
         <div className="modal-overlay open" onClick={() => setPickerTarget(null)}>
           <div className="modal-box" onClick={e => e.stopPropagation()}>
             <div className="modal-top">
-              <h3>📸 Select from Library</h3>
+              <h3>Select from Library</h3>
               <button className="modal-close" onClick={() => setPickerTarget(null)}>✕</button>
             </div>
             <div className="modal-search">

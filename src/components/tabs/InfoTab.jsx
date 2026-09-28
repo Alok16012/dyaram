@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react'
 import { usePackage } from '../../context/PackageContext'
+import { ImagePlus, Images } from 'lucide-react'
 
 function ListAddRow({ placeholder, onAdd }) {
   const inputRef = useRef(null)
@@ -87,7 +88,7 @@ export default function InfoTab({ active }) {
         >
           {pkg.hero_photo_url
             ? <img src={pkg.hero_photo_url} alt="Hero" />
-            : <div className="photo-slot-add">🏔️</div>
+            : <div className="photo-slot-add"><ImagePlus size={24} /></div>
           }
         </div>
       </div>
@@ -121,7 +122,7 @@ export default function InfoTab({ active }) {
         <div className="modal-overlay open" onClick={() => setPickerOpen(false)}>
           <div className="modal-box" onClick={e => e.stopPropagation()}>
             <div className="modal-top">
-              <h3>📸 Select Cover Photo</h3>
+              <h3>Select Cover Photo</h3>
               <button className="modal-close" onClick={() => setPickerOpen(false)}>✕</button>
             </div>
             {library.length > 0 && (
@@ -138,7 +139,7 @@ export default function InfoTab({ active }) {
             <div className="modal-body">
               {library.length === 0 ? (
                 <div className="empty-state">
-                  <div className="empty-state-icon">📭</div>
+                  <div className="empty-state-icon"><Images size={26} strokeWidth={1.6} /></div>
                   <p>Upload photos in the Photos tab first.</p>
                 </div>
               ) : filteredLibrary.length === 0 ? (

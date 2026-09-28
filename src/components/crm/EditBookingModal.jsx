@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { BOOKING_STATUSES } from '../../context/BookingContext'
 import toast from 'react-hot-toast'
+import { X } from 'lucide-react'
 
 const fmt = (n) => `₹${Number(n || 0).toLocaleString('en-IN')}`
 
@@ -44,7 +45,7 @@ export default function EditBookingModal({ booking, onSave, onClose }) {
       <div className="glass-card" onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 480, maxHeight: '90vh', display: 'flex', flexDirection: 'column', padding: 0 }}>
         <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border-glass)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h3 style={{ fontSize: 16, fontWeight: 800 }}>Edit booking · {booking.booking_ref}</h3>
-          <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(255,255,255,0.05)', border: 'none', color: 'var(--text-dim)', cursor: 'pointer' }}>✕</button>
+          <button className="modal-close-btn" onClick={onClose}><X size={16} /></button>
         </div>
         <div style={{ flex: 1, overflowY: 'auto', padding: 24, display: 'flex', flexDirection: 'column', gap: 14 }}>
           <label className="edit-field">

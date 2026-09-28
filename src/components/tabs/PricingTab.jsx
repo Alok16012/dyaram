@@ -1,4 +1,5 @@
 import { usePackage } from '../../context/PackageContext'
+import { IndianRupee } from 'lucide-react'
 
 const PRESETS = [
   { label: 'Adult',  pax_type: 'Adult',  age_limit: 'Above 12 years', price: '' },
@@ -62,7 +63,7 @@ export default function PricingTab({ active }) {
       <div className="price-rows">
         {prices.length === 0 && (
           <div className="price-empty">
-            <span>💰</span>
+            <IndianRupee size={16} />
             <p>Koi price nahi hai abhi</p>
             <p>Upar se Quick Add karo ya neeche + button use karo</p>
           </div>
@@ -124,7 +125,7 @@ export default function PricingTab({ active }) {
       {/* ── PRICE SUMMARY ── */}
       {prices.filter(p => p.price > 0).length > 0 && (
         <div className="price-summary-card">
-          <div className="price-summary-head">💰 Price Summary</div>
+          <div className="price-summary-head">Price Summary</div>
           {prices.filter(p => p.pax_type && p.price > 0).map((p, i) => (
             <div className="price-summary-line" key={i}>
               <span className="price-summary-type">{p.pax_type}</span>
@@ -149,7 +150,7 @@ export default function PricingTab({ active }) {
         </p>
       ) : hotels.map((h, i) => (
         <div className="list-item" key={i}>
-          <span>🏨 {h.name}</span>
+          <span>{h.name}</span>
           <span style={{ color: 'var(--orange)', fontSize: 12 }}>{'★'.repeat(h.star)}</span>
         </div>
       ))}
