@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import toast from 'react-hot-toast'
+import { Plus, Search, Wallet, CalendarDays, ChartColumn, Tags, Pencil, Trash2, X } from 'lucide-react'
+import { PageHeader, StatCard, Card, EmptyState, Pagination, Pill } from '../components/ui'
+import { inr, fmtDate } from '../lib/ui'
 
 const CATEGORIES = ['Hotel', 'Cab/Transport', 'Staff Salary', 'Marketing', 'Office', 'Other']
 
 const todayStr = () => new Date().toISOString().slice(0, 10)
 
-const fmtINR = (n) => `₹${Number(n || 0).toLocaleString('en-IN')}`
 
 function ExpenseModal({ expense, onSave, onClose }) {
   const [form, setForm] = useState(expense || {
@@ -30,7 +32,7 @@ function ExpenseModal({ expense, onSave, onClose }) {
       <div className="modal-content glass-card animate-fade" onClick={e => e.stopPropagation()}>
         <div className="modal-header">
           <h3>{expense ? 'Edit Expense' : 'Add Expense'}</h3>
-          <button className="modal-close-btn" onClick={onClose}>✕</button>
+          <button className="modal-close-btn" onClick={onClose}><X size={16} /></button>
         </div>
 
         <div className="modal-body-custom">
@@ -79,6 +81,8 @@ export default function Expenses() {
   const [search, setSearch] = useState('')
   const [showAdd, setShowAdd] = useState(false)
   const [editingExpense, setEditingExpense] = useState(null)
+  const [page, setPage] = useState(1)
+  const [catFilter, setCatFilter] = useState('all')
 
   const fetchExpenses = async () => {
     setLoading(true)
@@ -151,96 +155,107 @@ export default function Expenses() {
     .filter(e => e.date && new Date(e.date).getFullYear() === currentYear)
     .reduce((acc, e) => acc + (Number(e.amount) || 0), 0)
 
-  const statCards = [
-    { label: 'Total Expenses', val: fmtINR(totalAll), icon: '💸', color: '#B91C1C', bgColor: '#FEE2E2' },
-    { label: 'This Month', val: fmtINR(totalMonth), icon: '📅', color: '#B45309', bgColor: '#FEF3C7' },
-    { label: 'This Year', val: fmtINR(totalYear), icon: '📊', color: '#0E7490', bgColor: '#CFFAFE' },
-  ]
-
+  const PAGE_SIZE = 15
   const filteredExpenses = expenses.filter(e => {
     const q = search.toLowerCase()
-    return (e.category || '').toLowerCase().includes(q) || (e.vendor || '').toLowerCase().includes(q)
+    const matches = !q || (e.category || '').toLowerCase().includes(q) || (e.vendor || '').toLowerCase().includes(q)
+    return matches && (catFilter === 'all' || e.category === catFilter)
   })
+  const pageRows = filteredExpenses.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+
+  const byCategory = CATEGORIES.map(c => ({
+    name: c,
+    total: expenses.filter(e => e.category === c).reduce((a, e) => a + (Number(e.amount) || 0), 0),
+  })).filter(c => c.total > 0).sort((a, b) => b.total - a.total)
+  const topCat = byCategory[0]
+  const CAT_COLORS = ['#12A15A', '#3B6FF6', '#F5A623', '#8B5CF6', '#0E9CB5', '#E5484D']
 
   return (
-    <div className="expenses-dashboard">
-      <div className="expenses-header">
-        <div>
-          <h1 className="text-gradient">Expenses</h1>
-          <p className="text-muted">Total: {fmtINR(totalMonth)} this month</p>
-        </div>
-        <button className="btn btn-primary" onClick={() => setShowAdd(true)}>
-          + Add Expense
-        </button>
+    <div>
+      <PageHeader
+        title="Expenses"
+        subtitle={`${inr(totalMonth)} spent this month`}
+        actions={<button className="btn btn-primary" onClick={() => setShowAdd(true)}><Plus size={17} /> Add Expense</button>}
+      />
+
+      <div className="kpi-grid">
+        <StatCard icon={Wallet} tone="red" label="Total Expenses" value={inr(totalAll)} />
+        <StatCard icon={CalendarDays} tone="orange" label="This Month" value={inr(totalMonth)} />
+        <StatCard icon={ChartColumn} tone="blue" label="This Year" value={inr(totalYear)} />
+        <StatCard icon={Tags} tone="purple" label="Top Category" value={topCat ? topCat.name : '—'} />
       </div>
 
-      <div className="stats-grid">
-        {statCards.map((s, i) => (
-          <div key={i} className="glass-card stat-card animate-fade" style={{ animationDelay: `${i * 0.1}s` }}>
-            <div className="stat-content">
-              <p className="stat-label">{s.label}</p>
-              <h2 className="stat-value">{s.val}</h2>
+      <div className="split-2 mb-20">
+        <Card title="Spend by Category" subtitle="All time">
+          {byCategory.length === 0 ? <EmptyState title="No data yet" /> : (
+            <ul className="bar-list">
+              {byCategory.map((c, i) => (
+                <li key={c.name}>
+                  <div className="bar-list-head"><span>{c.name}</span><span className="cell-strong">{inr(c.total)}</span></div>
+                  <div className="bar-track"><div className="bar-fill" style={{ width: `${(c.total / byCategory[0].total) * 100}%`, background: CAT_COLORS[i % CAT_COLORS.length] }} /></div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
+
+        <div className="card">
+          <div className="toolbar">
+            <div className="toolbar-search">
+              <Search size={16} />
+              <input placeholder="Search by category or vendor..." value={search} onChange={e => { setSearch(e.target.value); setPage(1) }} />
             </div>
-            <div className="stat-icon-wrap" style={{ background: s.bgColor, color: s.color }}>
-              {s.icon}
+            <div className="tabs-line">
+              {['all', ...CATEGORIES].map(c => (
+                <button key={c} className={`tab-line ${catFilter === c ? 'active' : ''}`} onClick={() => { setCatFilter(c); setPage(1) }}>
+                  {c === 'all' ? 'All' : c}
+                </button>
+              ))}
             </div>
           </div>
-        ))}
-      </div>
-
-      <div className="filter-row">
-        <input className="glass-input search-input" placeholder="Search by category or vendor..." value={search} onChange={e => setSearch(e.target.value)} />
-      </div>
-
-      {loading ? (
-        <div className="loading-state"><div className="spinner" /></div>
-      ) : (
-        <div className="glass-card expenses-table-card">
-          {filteredExpenses.length === 0 ? (
-            <div className="empty-state">
-              <div className="empty-state-icon">💸</div>
-              <h3>No expenses found</h3>
-              <p>Add your first expense to get started</p>
-            </div>
+          {loading ? (
+            <div className="loading-state"><div className="spinner" /></div>
+          ) : filteredExpenses.length === 0 ? (
+            <EmptyState icon={Wallet} title="No expenses found" text="Track hotel, transport and office costs here."
+              action={<button className="btn btn-primary btn-sm" onClick={() => setShowAdd(true)}><Plus size={15} /> Add Expense</button>} />
           ) : (
-            <div className="expenses-table-scroll">
-              <table className="modern-table">
-                <thead>
-                  <tr>
-                    <th>Date</th>
-                    <th>Category</th>
-                    <th>Vendor</th>
-                    <th>Amount</th>
-                    <th>Notes</th>
-                    <th style={{ textAlign: 'right' }}>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredExpenses.map(exp => (
-                    <tr key={exp.id}>
-                      <td style={{ whiteSpace: 'nowrap' }}>
-                        {exp.date ? new Date(exp.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: '2-digit' }) : '—'}
-                      </td>
-                      <td>
-                        <span className="category-badge">{exp.category || '—'}</span>
-                      </td>
-                      <td>{exp.vendor || '—'}</td>
-                      <td style={{ fontWeight: 700 }}>{fmtINR(exp.amount)}</td>
-                      <td className="notes-cell">{exp.notes || '—'}</td>
-                      <td>
-                        <div className="expense-actions">
-                          <button className="action-btn" onClick={() => setEditingExpense(exp)} title="Edit">✏️</button>
-                          <button className="action-btn delete" onClick={() => handleDelete(exp.id)} title="Delete">🗑️</button>
-                        </div>
-                      </td>
+            <>
+              <div className="table-wrap">
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Category</th>
+                      <th>Vendor</th>
+                      <th>Notes</th>
+                      <th className="text-right">Amount</th>
+                      <th className="text-right">Actions</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {pageRows.map(exp => (
+                      <tr key={exp.id} onClick={() => setEditingExpense(exp)}>
+                        <td>{fmtDate(exp.date)}</td>
+                        <td><Pill tone="gray">{exp.category || '—'}</Pill></td>
+                        <td className="cell-strong">{exp.vendor || '—'}</td>
+                        <td>{exp.notes || '—'}</td>
+                        <td className="cell-strong text-right" style={{ color: 'var(--danger)' }}>{inr(exp.amount)}</td>
+                        <td onClick={e => e.stopPropagation()}>
+                          <div className="row-actions">
+                            <button className="icon-action" onClick={() => setEditingExpense(exp)} title="Edit"><Pencil size={15} /></button>
+                            <button className="icon-action danger" onClick={() => handleDelete(exp.id)} title="Delete"><Trash2 size={15} /></button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <Pagination page={Math.min(page, Math.ceil(filteredExpenses.length / PAGE_SIZE))} pageSize={PAGE_SIZE} total={filteredExpenses.length} onChange={setPage} noun="expenses" />
+            </>
           )}
         </div>
-      )}
+      </div>
 
       {(showAdd || editingExpense) && (
         <ExpenseModal
@@ -250,187 +265,6 @@ export default function Expenses() {
         />
       )}
 
-      <style jsx>{`
-        .expenses-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: flex-end;
-          margin-bottom: 24px;
-          gap: 16px;
-        }
-        .expenses-header h1 { font-size: 28px; font-weight: 800; margin-bottom: 4px; }
-        .expenses-header .btn { white-space: nowrap; }
-
-        .stats-grid {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 16px;
-          margin-bottom: 24px;
-        }
-        .stat-card {
-          padding: 20px;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-        }
-        .stat-label { font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 4px; }
-        .stat-value { font-size: 22px; font-weight: 800; }
-        .stat-icon-wrap { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
-
-        .filter-row { margin-bottom: 20px; }
-        .search-input { max-width: 320px; }
-
-        .expenses-table-card { padding: 0; overflow: hidden; }
-        .expenses-table-scroll { overflow-x: auto; }
-
-        .category-badge {
-          font-size: 11px;
-          font-weight: 700;
-          padding: 4px 10px;
-          border-radius: 20px;
-          background: rgba(16, 185, 129, 0.12);
-          color: var(--primary-dark, #059669);
-          white-space: nowrap;
-        }
-        .notes-cell {
-          max-width: 220px;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-          color: var(--text-dim);
-        }
-
-        .expense-actions {
-          display: flex;
-          gap: 6px;
-          flex-shrink: 0;
-          justify-content: flex-end;
-        }
-        .action-btn {
-          width: 32px;
-          height: 32px;
-          border-radius: 9px;
-          border: 1px solid var(--border-glass);
-          background: #F8FAFC;
-          color: var(--text-muted);
-          cursor: pointer;
-          font-size: 13px;
-          transition: all 0.15s;
-        }
-        .action-btn:hover {
-          background: #F1F5F9;
-          transform: scale(1.05);
-        }
-        .action-btn.delete:hover {
-          background: rgba(239,68,68,0.12);
-          border-color: #ef4444;
-        }
-
-        .empty-state {
-          padding: 48px 20px;
-          text-align: center;
-        }
-        .empty-state-icon { font-size: 48px; margin-bottom: 12px; }
-        .empty-state h3 { font-size: 18px; margin-bottom: 6px; }
-        .empty-state p { color: var(--text-dim); }
-
-        .modal-overlay {
-          position: fixed;
-          inset: 0;
-          background: rgba(0,0,0,0.7);
-          backdrop-filter: blur(4px);
-          z-index: 1000;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 16px;
-        }
-        .modal-content {
-          width: 100%;
-          max-width: 500px;
-          max-height: 90vh;
-          overflow-y: auto;
-        }
-        .modal-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 20px 24px;
-          border-bottom: 1px solid var(--border-glass);
-        }
-        .modal-header h3 { font-size: 18px; font-weight: 800; }
-        .modal-close-btn {
-          width: 32px;
-          height: 32px;
-          border-radius: 8px;
-          background: #F1F5F9;
-          border: none;
-          color: var(--text-dim);
-          cursor: pointer;
-          font-size: 14px;
-        }
-        .modal-close-btn:hover {
-          background: rgba(239,68,68,0.2);
-          color: #ef4444;
-        }
-        .modal-body-custom {
-          padding: 24px;
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-        }
-        .form-row {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 16px;
-        }
-        .form-field {
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-        }
-        .form-field label {
-          font-size: 11px;
-          font-weight: 700;
-          color: var(--text-muted);
-          text-transform: uppercase;
-        }
-        .modal-footer-custom {
-          display: flex;
-          justify-content: flex-end;
-          gap: 12px;
-          padding: 16px 24px;
-          border-top: 1px solid var(--border-glass);
-          background: #F8FAFC;
-        }
-
-        @media (max-width: 1024px) {
-          .stats-grid { grid-template-columns: repeat(2, 1fr); }
-        }
-        @media (max-width: 768px) {
-          .expenses-header {
-            flex-direction: column;
-            align-items: flex-start;
-          }
-          .expenses-header h1 { font-size: 22px; }
-          .expenses-header .btn { width: 100%; justify-content: center; }
-
-          .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
-          .stat-card { padding: 14px; }
-          .stat-value { font-size: 18px; }
-          .stat-label { font-size: 10px; }
-
-          .modal-content { max-height: 95vh; }
-          .modal-header { padding: 16px 20px; }
-          .modal-header h3 { font-size: 16px; }
-          .modal-body-custom { padding: 16px 20px; }
-          .modal-footer-custom { padding: 12px 20px; }
-        }
-        @media (max-width: 480px) {
-          .stats-grid { grid-template-columns: 1fr; }
-          .form-row { grid-template-columns: 1fr; }
-        }
-      `}</style>
     </div>
   )
 }

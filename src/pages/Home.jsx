@@ -7,7 +7,7 @@ import {
 import {
   BriefcaseBusiness, Users, CalendarCheck, IndianRupee, Star, CalendarDays,
   ChevronDown, Plus, UserPlus, FilePlus2, FileText, Send, UserRound,
-  ArrowRight, Ellipsis, User, Plane, Hotel, MessageCircle, X, Map,
+  ArrowRight, Ellipsis, User, Plane, Hotel, MessageCircle, X, Map as MapIcon,
 } from 'lucide-react'
 import { usePackage } from '../context/PackageContext'
 import { useCRM } from '../context/CRMContext'
@@ -294,7 +294,7 @@ export default function Home() {
               <div className="dropdown">
                 <button className="dropdown-item" onClick={() => navigate('/bookings?new=1')}><CalendarCheck size={16} /> New Booking</button>
                 <button className="dropdown-item" onClick={() => navigate('/leads?new=1')}><UserPlus size={16} /> New Lead</button>
-                <button className="dropdown-item" onClick={handleNewItinerary}><Map size={16} /> New Itinerary</button>
+                <button className="dropdown-item" onClick={handleNewItinerary}><MapIcon size={16} /> New Itinerary</button>
                 <button className="dropdown-item" onClick={() => navigate('/invoices/new')}><FileText size={16} /> New Invoice</button>
               </div>
             )}

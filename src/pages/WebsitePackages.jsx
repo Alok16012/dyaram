@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase, isConfigured, uploadPhoto } from '../lib/supabase'
 import toast from 'react-hot-toast'
+import { X, Image as ImageIcon, Upload, ExternalLink, Package, Pencil, Trash2 } from 'lucide-react'
 
 const SITE_URL = 'https://sheratravelsxr.com'
 
@@ -82,7 +83,7 @@ function ListEditor({ label, items, onChange, placeholder, addLabel }) {
         <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
           <input className="glass-input" style={{ flex: 1, padding: '9px 12px', fontSize: 13 }} value={it}
             placeholder={placeholder} onChange={e => { const arr = [...items]; arr[i] = e.target.value; onChange(arr) }} />
-          <button className="btn btn-ghost" style={{ padding: '0 12px' }} onClick={() => onChange(items.filter((_, j) => j !== i))}>✕</button>
+          <button className="btn btn-ghost" style={{ padding: '0 12px' }} onClick={() => onChange(items.filter((_, j) => j !== i))}><X size={14} /></button>
         </div>
       ))}
       <button className="btn btn-ghost" style={{ fontSize: 12 }} onClick={() => onChange([...(items || []), ''])}>+ {addLabel || 'Add'}</button>
@@ -232,9 +233,9 @@ export default function WebsitePackages() {
           <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 10 }}>
             {draft.image
               ? <img src={draft.image} alt="" style={{ width: 70, height: 50, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }} />
-              : <div style={{ width: 70, height: 50, borderRadius: 8, background: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>🖼️</div>}
+              : <div style={{ width: 70, height: 50, borderRadius: 8, background: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94A3B8' }}><ImageIcon size={20} /></div>}
             <label className="btn btn-ghost" style={{ fontSize: 12, cursor: 'pointer', whiteSpace: 'nowrap' }}>
-              {uploading ? 'Uploading…' : '📤 Upload cover'}
+              {uploading ? 'Uploading…' : <><Upload size={15} /> Upload cover</>}
               <input type="file" accept="image/*" style={{ display: 'none' }} disabled={uploading}
                 onChange={e => { uploadImage(e.target.files?.[0], (url) => setField('image', url)); e.target.value = '' }} />
             </label>
@@ -247,13 +248,13 @@ export default function WebsitePackages() {
               {g ? <img src={g} alt="" style={{ width: 44, height: 34, borderRadius: 6, objectFit: 'cover', flexShrink: 0 }} /> : <div style={{ width: 44, height: 34, borderRadius: 6, background: 'rgba(255,255,255,0.06)', flexShrink: 0 }} />}
               <input className="glass-input" style={{ flex: 1, padding: '9px 12px', fontSize: 12.5 }} value={g}
                 onChange={e => { const arr = [...draft.gallery]; arr[i] = e.target.value; setField('gallery', arr) }} placeholder="Image URL" />
-              <button className="btn btn-ghost" style={{ padding: '0 12px' }} onClick={() => setField('gallery', draft.gallery.filter((_, j) => j !== i))}>✕</button>
+              <button className="btn btn-ghost" style={{ padding: '0 12px' }} onClick={() => setField('gallery', draft.gallery.filter((_, j) => j !== i))}><X size={14} /></button>
             </div>
           ))}
           <div style={{ display: 'flex', gap: 8 }}>
             <button className="btn btn-ghost" style={{ fontSize: 12 }} onClick={() => setField('gallery', [...(draft.gallery || []), ''])}>+ Add gallery URL</button>
             <label className="btn btn-ghost" style={{ fontSize: 12, cursor: 'pointer' }}>
-              📤 Upload gallery image
+              <Upload size={15} /> Upload gallery image
               <input type="file" accept="image/*" style={{ display: 'none' }} disabled={uploading}
                 onChange={e => { uploadImage(e.target.files?.[0], (url) => setField('gallery', [...(draft.gallery || []), url])); e.target.value = '' }} />
             </label>
@@ -313,7 +314,7 @@ export default function WebsitePackages() {
   })
 
   return (
-    <div style={{ maxWidth: 900, margin: '0 auto', paddingBottom: 40 }}>
+    <div style={{ paddingBottom: 40 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
         <div>
           <h1 style={{ fontSize: 26, fontWeight: 900, margin: 0 }}>Website Packages</h1>
@@ -322,7 +323,7 @@ export default function WebsitePackages() {
           </p>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <a className="btn btn-ghost" href={`${SITE_URL}/trips`} target="_blank" rel="noreferrer" style={{ whiteSpace: 'nowrap' }}>↗ View live</a>
+          <a className="btn btn-ghost" href={`${SITE_URL}/trips`} target="_blank" rel="noreferrer" style={{ whiteSpace: 'nowrap' }}><ExternalLink size={15} /> View live</a>
           <button className="btn btn-primary" onClick={startAdd}>+ New Package</button>
         </div>
       </div>
@@ -332,7 +333,7 @@ export default function WebsitePackages() {
 
       {filtered.length === 0 ? (
         <div className="glass-card" style={{ padding: 40, textAlign: 'center' }}>
-          <div style={{ fontSize: 40, marginBottom: 10 }}>📦</div>
+          <div className="empty-state-icon"><Package size={26} strokeWidth={1.6} /></div>
           <h3 style={{ marginBottom: 6 }}>{packages.length === 0 ? 'No packages yet' : 'No matches'}</h3>
           <p style={{ color: 'var(--text-dim, #94a3b8)' }}>{packages.length === 0 ? 'Click “New Package” to add your first tour.' : 'Try a different search.'}</p>
         </div>
@@ -355,8 +356,8 @@ export default function WebsitePackages() {
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
-                  <button className="btn btn-ghost" style={{ padding: '6px 14px', fontSize: 13 }} onClick={() => startEdit(realIndex)}>✏️ Edit</button>
-                  <button className="btn btn-ghost" style={{ padding: '6px 14px', fontSize: 13, color: '#ef4444' }} onClick={() => removePackage(realIndex)}>🗑️</button>
+                  <button className="btn btn-ghost" style={{ padding: '6px 14px', fontSize: 13 }} onClick={() => startEdit(realIndex)}><Pencil size={14} /> Edit</button>
+                  <button className="btn btn-ghost" style={{ padding: '6px 14px', fontSize: 13, color: '#ef4444' }} onClick={() => removePackage(realIndex)}><Trash2 size={14} /></button>
                 </div>
               </div>
             )

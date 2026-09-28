@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase, isConfigured, uploadPhoto } from '../lib/supabase'
 import toast from 'react-hot-toast'
+import { X, Upload, ExternalLink } from 'lucide-react'
 
 // Public website URL — used for the "View live page" link.
 const SITE_URL = 'https://sheratravelwebsite.netlify.app'
@@ -188,7 +189,7 @@ export default function WebsiteContent() {
             Edit the <strong>About Us</strong> page. Changes go live on the website within a few seconds of saving.
           </p>
         </div>
-        <a className="btn btn-ghost" href={`${SITE_URL}/about`} target="_blank" rel="noreferrer" style={{ whiteSpace: 'nowrap' }}>↗ View live page</a>
+        <a className="btn btn-ghost" href={`${SITE_URL}/about`} target="_blank" rel="noreferrer" style={{ whiteSpace: 'nowrap' }}><ExternalLink size={15} /> View live page</a>
       </div>
 
       {/* Hero */}
@@ -222,7 +223,7 @@ export default function WebsiteContent() {
           <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
             <input className="glass-input" style={{ flex: 1, padding: '9px 12px', fontSize: 13 }} value={b}
               onChange={e => { const arr = [...about.mission.bullets]; arr[i] = e.target.value; setArr('mission', 'bullets', arr) }} />
-            <button className="btn btn-ghost" style={{ padding: '0 12px' }} onClick={() => setArr('mission', 'bullets', about.mission.bullets.filter((_, j) => j !== i))}>✕</button>
+            <button className="btn btn-ghost" style={{ padding: '0 12px' }} onClick={() => setArr('mission', 'bullets', about.mission.bullets.filter((_, j) => j !== i))}><X size={14} /></button>
           </div>
         ))}
         <button className="btn btn-ghost" style={{ fontSize: 12 }} onClick={() => setArr('mission', 'bullets', [...about.mission.bullets, 'New point'])}>+ Add bullet</button>
@@ -247,7 +248,7 @@ export default function WebsiteContent() {
               placeholder="Title" onChange={e => { const arr = [...about.services.items]; arr[i] = { ...arr[i], title: e.target.value }; setArr('services', 'items', arr) }} />
             <input className="glass-input" style={{ flex: 1, padding: '9px 12px', fontSize: 13 }} value={it.desc}
               placeholder="Description" onChange={e => { const arr = [...about.services.items]; arr[i] = { ...arr[i], desc: e.target.value }; setArr('services', 'items', arr) }} />
-            <button className="btn btn-ghost" style={{ padding: '0 12px' }} onClick={() => setArr('services', 'items', about.services.items.filter((_, j) => j !== i))}>✕</button>
+            <button className="btn btn-ghost" style={{ padding: '0 12px' }} onClick={() => setArr('services', 'items', about.services.items.filter((_, j) => j !== i))}><X size={14} /></button>
           </div>
         ))}
         <button className="btn btn-ghost" style={{ fontSize: 12 }} onClick={() => setArr('services', 'items', [...about.services.items, { title: 'New Service', desc: '', icon: '⭐' }])}>+ Add service</button>
@@ -263,7 +264,7 @@ export default function WebsiteContent() {
               placeholder="Year" onChange={e => { const arr = [...about.timeline.milestones]; arr[i] = { ...arr[i], year: e.target.value }; setArr('timeline', 'milestones', arr) }} />
             <input className="glass-input" style={{ flex: 1, padding: '9px 12px', fontSize: 13 }} value={m.event}
               placeholder="What happened" onChange={e => { const arr = [...about.timeline.milestones]; arr[i] = { ...arr[i], event: e.target.value }; setArr('timeline', 'milestones', arr) }} />
-            <button className="btn btn-ghost" style={{ padding: '0 12px' }} onClick={() => setArr('timeline', 'milestones', about.timeline.milestones.filter((_, j) => j !== i))}>✕</button>
+            <button className="btn btn-ghost" style={{ padding: '0 12px' }} onClick={() => setArr('timeline', 'milestones', about.timeline.milestones.filter((_, j) => j !== i))}><X size={14} /></button>
           </div>
         ))}
         <button className="btn btn-ghost" style={{ fontSize: 12 }} onClick={() => setArr('timeline', 'milestones', [...about.timeline.milestones, { year: '2025', event: '' }])}>+ Add milestone</button>
@@ -291,7 +292,7 @@ export default function WebsiteContent() {
                 ? <img src={mem.image} alt="" style={{ width: 44, height: 44, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, border: '1px solid var(--border-glass, rgba(255,255,255,0.15))' }} />
                 : <div style={{ width: 44, height: 44, borderRadius: '50%', flexShrink: 0, background: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>👤</div>}
               <label className="btn btn-ghost" style={{ fontSize: 12, cursor: 'pointer', whiteSpace: 'nowrap' }}>
-                {uploadingIdx === i ? 'Uploading…' : '📤 Upload photo'}
+                {uploadingIdx === i ? 'Uploading…' : <><Upload size={15} /> Upload photo</>}
                 <input type="file" accept="image/*" style={{ display: 'none' }} disabled={uploadingIdx === i}
                   onChange={e => { uploadMemberPhoto(i, e.target.files?.[0]); e.target.value = '' }} />
               </label>

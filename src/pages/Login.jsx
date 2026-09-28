@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import toast from 'react-hot-toast'
 import bcrypt from 'bcryptjs'
-import loginBg from '../assets/login-bg.png'
 import { supabase, isDemo } from '../lib/supabase'
 import { setSession } from '../lib/auth'
+import { User, Lock, Eye, EyeOff, ArrowRight, CheckCircle2 } from 'lucide-react'
+import BrandMark from '../components/BrandMark'
+import './Login.css'
 
 export default function Login() {
   const [id, setId] = useState('')
@@ -67,185 +69,71 @@ export default function Login() {
     }
   }
 
+  const [showPass, setShowPass] = useState(false)
+  const fillDemo = (u, pw) => { setId(u); setPass(pw) }
+
   return (
-    <div className="login-container">
-      <div className="login-bg-overlay">
-        <img src={loginBg} alt="Background" />
-      </div>
-      
-      <div className="login-box glass">
-        <div className="login-header">
-          <div className="login-logo">✈️</div>
-          <h1>Shera Travels</h1>
-          <p>Itinerary Maker & CRM</p>
+    <div className="auth">
+      <aside className="auth-brand">
+        <div className="auth-brand-top">
+          <BrandMark size={42} />
+          <div>
+            <div className="auth-brand-name">Shera Travels</div>
+            <div className="auth-brand-tag">TRAVEL &amp; TOURS</div>
+          </div>
         </div>
-        
-        <form onSubmit={handleLogin} className="login-form">
-          <div className="login-field">
-            <label>Username</label>
-            <input
-              type="text"
-              placeholder="Enter your username"
-              value={id}
-              onChange={e => setId(e.target.value)}
-              required
-            />
+        <div className="auth-brand-copy">
+          <h2>Manage every journey<br />from one place.</h2>
+          <p>Leads, bookings, itineraries, invoices and payments — your complete travel business CRM.</p>
+          <ul>
+            <li><CheckCircle2 size={18} /> Track leads from inquiry to booking</li>
+            <li><CheckCircle2 size={18} /> Build and share itineraries in minutes</li>
+            <li><CheckCircle2 size={18} /> GST invoices, payments and revenue reports</li>
+          </ul>
+        </div>
+        <div className="auth-brand-foot">© {new Date().getFullYear()} Shera Travels. All rights reserved.</div>
+        <svg className="auth-brand-art" viewBox="0 0 400 300" fill="none" aria-hidden="true">
+          <path d="M-20 250C80 180 180 250 260 160S400 90 440 60" stroke="#fff" strokeOpacity=".18" strokeWidth="2" strokeDasharray="6 8" />
+          <circle cx="330" cy="70" r="90" fill="#fff" fillOpacity=".06" />
+          <circle cx="60" cy="260" r="120" fill="#fff" fillOpacity=".05" />
+        </svg>
+      </aside>
+
+      <main className="auth-main">
+        <form onSubmit={handleLogin} className="auth-card">
+          <div className="auth-mobile-brand"><BrandMark size={40} /><span>Shera Travels</span></div>
+          <h1>Welcome back</h1>
+          <p className="auth-sub">Sign in to your account to continue.</p>
+
+          <label className="auth-label" htmlFor="login-user">Username</label>
+          <div className="auth-input">
+            <User size={17} />
+            <input id="login-user" type="text" placeholder="Enter your username" value={id} onChange={e => setId(e.target.value)} autoComplete="username" required />
           </div>
-          
-          <div className="login-field">
-            <label>Password</label>
-            <input 
-              type="password" 
-              placeholder="••••••••"
-              value={pass}
-              onChange={e => setPass(e.target.value)}
-              required
-            />
+
+          <label className="auth-label" htmlFor="login-pass">Password</label>
+          <div className="auth-input">
+            <Lock size={17} />
+            <input id="login-pass" type={showPass ? 'text' : 'password'} placeholder="Enter your password" value={pass} onChange={e => setPass(e.target.value)} autoComplete="current-password" required />
+            <button type="button" className="auth-eye" onClick={() => setShowPass(v => !v)} aria-label={showPass ? 'Hide password' : 'Show password'}>
+              {showPass ? <EyeOff size={17} /> : <Eye size={17} />}
+            </button>
           </div>
-          
-          <button type="submit" className="btn btn-primary btn-block" disabled={loading}>
-            {loading ? 'Authenticating...' : 'Login to Dashboard'}
+
+          <button type="submit" className="btn btn-primary btn-block auth-submit" disabled={loading}>
+            {loading ? 'Signing in…' : <>Sign in <ArrowRight size={17} /></>}
           </button>
+
+          {isDemo && (
+            <div className="auth-demo">
+              <div className="auth-demo-title">Demo accounts <span>click to fill</span></div>
+              <button type="button" onClick={() => fillDemo('admin', 'admin123')}><strong>Admin</strong><span>admin / admin123</span></button>
+              <button type="button" onClick={() => fillDemo('sales', 'demo123')}><strong>Sales</strong><span>sales / demo123</span></button>
+              <button type="button" onClick={() => fillDemo('aman', 'demo123')}><strong>Operations</strong><span>aman / demo123</span></button>
+            </div>
+          )}
         </form>
-        
-        {isDemo && (
-          <div className="login-demo-hint">
-            <strong>Demo login</strong>
-            <span>Admin: <code>admin</code> / <code>admin123</code></span>
-            <span>Sales: <code>sales</code> / <code>demo123</code></span>
-          </div>
-        )}
-
-        <div className="login-footer">
-          <p>© 2026 Shera Travels. All rights reserved.</p>
-        </div>
-      </div>
-
-      <style jsx>{`
-        .login-demo-hint {
-          margin-top: 18px;
-          padding: 12px 14px;
-          border-radius: 10px;
-          background: rgba(79, 110, 247, 0.12);
-          border: 1px solid rgba(79, 110, 247, 0.3);
-          display: flex;
-          flex-direction: column;
-          gap: 4px;
-          font-size: 12.5px;
-          text-align: left;
-        }
-        .login-demo-hint code {
-          font-weight: 700;
-        }
-        .login-container {
-          height: 100vh;
-          width: 100vw;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          position: relative;
-          overflow: hidden;
-          background: #000;
-        }
-        
-        .login-bg-overlay {
-          position: absolute;
-          inset: 0;
-          z-index: 0;
-        }
-        
-        .login-bg-overlay img {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-          opacity: 0.6;
-          filter: blur(4px);
-        }
-        
-        .login-box {
-          position: relative;
-          z-index: 1;
-          width: 100%;
-          max-width: 420px;
-          padding: 40px;
-          border-radius: 24px;
-          box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-          text-align: center;
-        }
-        
-        .login-logo {
-          font-size: 48px;
-          margin-bottom: 16px;
-          animation: float 3s ease-in-out infinite;
-        }
-        
-        @keyframes float {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-10px); }
-        }
-        
-        .login-header h1 {
-          font-size: 32px;
-          margin-bottom: 8px;
-          background: linear-gradient(135deg, #fff 0%, #94a3b8 100%);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-        }
-        
-        .login-header p {
-          color: #94a3b8;
-          font-size: 14px;
-          margin-bottom: 32px;
-        }
-        
-        .login-form {
-          text-align: left;
-        }
-        
-        .login-field {
-          margin-bottom: 20px;
-        }
-        
-        .login-field label {
-          display: block;
-          color: #e2e8f0;
-          font-size: 13px;
-          font-weight: 600;
-          margin-bottom: 8px;
-          margin-left: 4px;
-        }
-        
-        .login-field input {
-          width: 100%;
-          padding: 14px 16px;
-          background: rgba(255, 255, 255, 0.05);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          border-radius: 12px;
-          color: #fff;
-          font-size: 15px;
-          transition: all 0.3s ease;
-        }
-        
-        .login-field input:focus {
-          outline: none;
-          background: rgba(255, 255, 255, 0.08);
-          border-color: #6366f1;
-          box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
-        }
-        
-        .btn-block {
-          width: 100%;
-          padding: 14px;
-          font-size: 16px;
-          margin-top: 12px;
-        }
-        
-        .login-footer {
-          margin-top: 32px;
-          color: #64748b;
-          font-size: 12px;
-        }
-      `}</style>
+      </main>
     </div>
   )
 }

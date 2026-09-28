@@ -1,13 +1,16 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import toast from 'react-hot-toast'
+import { Plus, Search, FileText, CircleCheck, Hourglass, TriangleAlert, Pencil, Trash2, Check } from 'lucide-react'
+import { PageHeader, StatCard, EmptyState, Pill, Pagination } from '../components/ui'
+import { inr, fmtDate } from '../lib/ui'
 
 const STATUS_STYLES = {
-  paid:     { bg: '#D1FAE5', color: '#065F46', label: 'Paid' },
-  partial:  { bg: '#DBEAFE', color: '#1E40AF', label: 'Partial' },
-  unpaid:   { bg: '#FEF3C7', color: '#92400E', label: 'Unpaid' },
-  overdue:  { bg: '#FEE2E2', color: '#991B1B', label: 'Overdue' },
+  paid:     { tone: 'green',  label: 'Paid' },
+  partial:  { tone: 'blue',   label: 'Partial' },
+  unpaid:   { tone: 'orange', label: 'Unpaid' },
+  overdue:  { tone: 'red',    label: 'Overdue' },
 }
 
 // Amount actually received against an invoice (jsonb payments or stored total).
@@ -18,29 +21,13 @@ const paidOf = (inv) => {
 }
 const balanceOf = (inv) => Math.max(0, (Number(inv.amount) || 0) - paidOf(inv))
 
-function StatusBadge({ status }) {
-  const s = STATUS_STYLES[status] || STATUS_STYLES.unpaid
-  return (
-    <span style={{
-      display: 'inline-block',
-      fontSize: 11,
-      fontWeight: 700,
-      padding: '4px 10px',
-      borderRadius: 20,
-      background: s.bg,
-      color: s.color,
-      whiteSpace: 'nowrap',
-    }}>
-      {s.label}
-    </span>
-  )
-}
-
 export default function Invoices() {
   const [invoices, setInvoices] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState('all')
+  const [page, setPage] = useState(1)
+  const navigate = useNavigate()
 
   useEffect(() => { fetchInvoices() }, [])
 
@@ -87,175 +74,111 @@ export default function Invoices() {
 
   const filteredInvoices = invoices.filter(inv => {
     const q = search.toLowerCase()
-    const matchesSearch = inv.client_name?.toLowerCase().includes(q) || inv.invoice_number?.toLowerCase().includes(q)
+    const matchesSearch = !q || inv.client_name?.toLowerCase().includes(q) || inv.invoice_number?.toLowerCase().includes(q)
     const matchesFilter = filter === 'all' || inv.status === filter
     return matchesSearch && matchesFilter
   })
+  const PAGE_SIZE = 15
+  const pageRows = filteredInvoices.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
-  const totalAmount = invoices.length
   // Sum of money actually collected vs still outstanding, across all invoices
   // (accounts for part-payments, not just fully-paid invoices).
   const paidAmount = invoices.reduce((acc, i) => acc + paidOf(i), 0)
   const unpaidAmount = invoices.reduce((acc, i) => acc + balanceOf(i), 0)
   const overdueCount = invoices.filter(i => i.status === 'overdue').length
-
-  const statCards = [
-    { label: 'Total Invoices', val: totalAmount, icon: '🧾', color: '#2563EB', bgColor: '#DBEAFE' },
-    { label: 'Paid', val: `₹${paidAmount.toLocaleString()}`, icon: '✅', color: '#059669', bgColor: '#D1FAE5' },
-    { label: 'Unpaid', val: `₹${unpaidAmount.toLocaleString()}`, icon: '⏳', color: '#B45309', bgColor: '#FEF3C7' },
-    { label: 'Overdue', val: overdueCount, icon: '⚠️', color: '#991B1B', bgColor: '#FEE2E2' },
-  ]
-
-  const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: '2-digit' }) : '—'
+  const TABS = ['all', 'unpaid', 'partial', 'paid', 'overdue']
 
   return (
-    <div className="invoices-dashboard">
-      <div className="invoices-header">
-        <div>
-          <h1 className="text-gradient">Invoices</h1>
-          <p className="text-muted">{invoices.length} invoices • ₹{unpaidAmount.toLocaleString()} unpaid</p>
-        </div>
-        <Link to="/invoices/new" className="btn btn-primary">
-          + New Invoice
-        </Link>
+    <div>
+      <PageHeader
+        title="Invoices"
+        subtitle={`${invoices.length} invoices · ${inr(unpaidAmount)} outstanding`}
+        actions={<Link to="/invoices/new" className="btn btn-primary"><Plus size={17} /> New Invoice</Link>}
+      />
+
+      <div className="kpi-grid">
+        <StatCard icon={FileText} tone="blue" label="Total Invoices" value={invoices.length} />
+        <StatCard icon={CircleCheck} tone="green" label="Collected" value={inr(paidAmount)} />
+        <StatCard icon={Hourglass} tone="orange" label="Outstanding" value={inr(unpaidAmount)} />
+        <StatCard icon={TriangleAlert} tone="red" label="Overdue" value={overdueCount} />
       </div>
 
-      <div className="stats-grid">
-        {statCards.map((s, i) => (
-          <div key={i} className="glass-card stat-card animate-fade" style={{ animationDelay: `${i * 0.05}s` }}>
-            <div className="stat-content">
-              <p className="stat-label">{s.label}</p>
-              <h2 className="stat-value">{s.val}</h2>
-            </div>
-            <div className="stat-icon-wrap" style={{ background: s.bgColor, color: s.color }}>
-              {s.icon}
-            </div>
+      <div className="card">
+        <div className="toolbar">
+          <div className="toolbar-search">
+            <Search size={16} />
+            <input placeholder="Search by client or invoice #..." value={search} onChange={e => { setSearch(e.target.value); setPage(1) }} />
           </div>
-        ))}
-      </div>
-
-      <div className="filter-row">
-        <input className="glass-input search-input" placeholder="Search by client or invoice #..." value={search} onChange={e => setSearch(e.target.value)} />
-        <div className="filter-pills">
-          <button className={`filter-pill ${filter === 'all' ? 'active' : ''}`} onClick={() => setFilter('all')}>All</button>
-          <button className={`filter-pill ${filter === 'unpaid' ? 'active' : ''}`} onClick={() => setFilter('unpaid')}>Unpaid</button>
-          <button className={`filter-pill ${filter === 'partial' ? 'active' : ''}`} onClick={() => setFilter('partial')}>Partial</button>
-          <button className={`filter-pill ${filter === 'paid' ? 'active' : ''}`} onClick={() => setFilter('paid')}>Paid</button>
-          <button className={`filter-pill ${filter === 'overdue' ? 'active' : ''}`} onClick={() => setFilter('overdue')}>Overdue</button>
+          <div className="tabs-line">
+            {TABS.map(t => (
+              <button key={t} className={`tab-line ${filter === t ? 'active' : ''}`} onClick={() => { setFilter(t); setPage(1) }}>
+                {t === 'all' ? 'All' : STATUS_STYLES[t].label}
+                <span className="tab-count">{t === 'all' ? invoices.length : invoices.filter(i => i.status === t).length}</span>
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
 
-      {loading ? (
-        <div className="loading-state"><div className="spinner" /></div>
-      ) : filteredInvoices.length === 0 ? (
-        <div className="empty-state">
-          <div className="empty-state-icon">🧾</div>
-          <h2>No invoices found</h2>
-          <p>Create your first invoice to get started</p>
-          <Link to="/invoices/new" className="btn btn-primary">+ New Invoice</Link>
-        </div>
-      ) : (
-        <div className="glass-card" style={{ padding: 0, overflow: 'hidden' }}>
-          <div style={{ overflowX: 'auto' }}>
-            <table className="modern-table">
-              <thead>
-                <tr>
-                  <th>Invoice #</th>
-                  <th>Client</th>
-                  <th>Amount</th>
-                  <th>Paid</th>
-                  <th>Balance</th>
-                  <th>Issue Date</th>
-                  <th>Due Date</th>
-                  <th>Status</th>
-                  <th style={{ textAlign: 'right' }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredInvoices.map(inv => (
-                  <tr key={inv.id}>
-                    <td style={{ fontWeight: 700 }}>{inv.invoice_number || '—'}</td>
-                    <td>{inv.client_name}</td>
-                    <td>₹{(Number(inv.amount) || 0).toLocaleString()}</td>
-                    <td style={{ color: '#059669', fontWeight: 600 }}>₹{paidOf(inv).toLocaleString()}</td>
-                    <td style={{ color: balanceOf(inv) > 0 ? '#B45309' : '#059669', fontWeight: 600 }}>₹{balanceOf(inv).toLocaleString()}</td>
-                    <td style={{ whiteSpace: 'nowrap' }}>{fmtDate(inv.issue_date)}</td>
-                    <td style={{ whiteSpace: 'nowrap' }}>{fmtDate(inv.due_date)}</td>
-                    <td><StatusBadge status={inv.status} /></td>
-                    <td>
-                      <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
-                        {inv.status !== 'paid' && (
-                          <button className="btn btn-ghost" style={{ padding: 8 }} onClick={() => markPaid(inv)} title="Mark Paid">✅</button>
-                        )}
-                        <Link className="btn btn-ghost" style={{ padding: 8 }} to={`/invoices/${inv.id}/edit`} title="Edit">✏️</Link>
-                        <button className="btn btn-ghost" style={{ padding: 8, color: '#EF4444' }} onClick={() => deleteInvoice(inv.id)} title="Delete">🗑️</button>
-                      </div>
-                    </td>
+        {loading ? (
+          <div className="loading-state"><div className="spinner" /></div>
+        ) : filteredInvoices.length === 0 ? (
+          <EmptyState icon={FileText} title="No invoices found" text="Create your first GST invoice to get started."
+            action={<Link to="/invoices/new" className="btn btn-primary btn-sm"><Plus size={15} /> New Invoice</Link>} />
+        ) : (
+          <>
+            <div className="table-wrap">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Invoice #</th>
+                    <th>Client</th>
+                    <th>Issue Date</th>
+                    <th>Due Date</th>
+                    <th className="text-right">Amount</th>
+                    <th className="text-right">Paid</th>
+                    <th className="text-right">Balance</th>
+                    <th>Status</th>
+                    <th className="text-right">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      <style jsx>{`
-        .invoices-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: flex-end;
-          margin-bottom: 24px;
-          gap: 16px;
-        }
-        .invoices-header h1 { font-size: 28px; font-weight: 800; margin-bottom: 4px; }
-        .invoices-header .btn { white-space: nowrap; }
-
-        .stats-grid {
-          display: grid;
-          grid-template-columns: repeat(4, 1fr);
-          gap: 16px;
-          margin-bottom: 24px;
-        }
-        .stat-card {
-          padding: 20px;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-        }
-        .stat-label { font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 4px; }
-        .stat-value { font-size: 22px; font-weight: 800; }
-        .stat-icon-wrap { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
-
-        .filter-row { margin-bottom: 20px; }
-        .search-input { max-width: 320px; margin-bottom: 12px; }
-
-        @media (max-width: 1024px) {
-          .stats-grid { grid-template-columns: repeat(2, 1fr); }
-        }
-        @media (max-width: 768px) {
-          .invoices-header {
-            flex-direction: column;
-            align-items: flex-start;
-          }
-          .invoices-header h1 { font-size: 22px; }
-          .invoices-header .btn { width: 100%; justify-content: center; }
-
-          .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
-          .stat-card { padding: 14px; }
-          .stat-value { font-size: 18px; }
-
-          .filter-pills {
-            overflow-x: auto;
-            flex-wrap: nowrap;
-            padding-bottom: 8px;
-            -webkit-overflow-scrolling: touch;
-          }
-          .filter-pill { white-space: nowrap; }
-        }
-        @media (max-width: 480px) {
-          .stats-grid { grid-template-columns: 1fr; }
-        }
-      `}</style>
+                </thead>
+                <tbody>
+                  {pageRows.map(inv => {
+                    const st = STATUS_STYLES[inv.status] || STATUS_STYLES.unpaid
+                    const bal = balanceOf(inv)
+                    return (
+                      <tr key={inv.id} onClick={() => navigate(`/invoices/${inv.id}/edit`)}>
+                        <td>
+                          <div className="person-cell">
+                            <span className="entity-icon blue"><FileText size={16} /></span>
+                            <span className="cell-strong">{inv.invoice_number || '—'}</span>
+                          </div>
+                        </td>
+                        <td>{inv.client_name}</td>
+                        <td>{fmtDate(inv.issue_date)}</td>
+                        <td>{fmtDate(inv.due_date)}</td>
+                        <td className="cell-strong text-right">{inr(inv.amount)}</td>
+                        <td className="text-right" style={{ color: 'var(--success)' }}>{inr(paidOf(inv))}</td>
+                        <td className="text-right" style={{ color: bal > 0 ? 'var(--warning)' : 'var(--text-muted)' }}>{inr(bal)}</td>
+                        <td><Pill tone={st.tone}>{st.label}</Pill></td>
+                        <td onClick={e => e.stopPropagation()}>
+                          <div className="row-actions">
+                            {inv.status !== 'paid' && (
+                              <button className="icon-action green" onClick={() => markPaid(inv)} title="Mark Paid"><Check size={15} /></button>
+                            )}
+                            <Link className="icon-action" to={`/invoices/${inv.id}/edit`} title="Edit"><Pencil size={15} /></Link>
+                            <button className="icon-action danger" onClick={() => deleteInvoice(inv.id)} title="Delete"><Trash2 size={15} /></button>
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <Pagination page={Math.min(page, Math.ceil(filteredInvoices.length / PAGE_SIZE))} pageSize={PAGE_SIZE} total={filteredInvoices.length} onChange={setPage} noun="invoices" />
+          </>
+        )}
+      </div>
     </div>
   )
 }

@@ -4,6 +4,7 @@ import bcrypt from 'bcryptjs'
 import { supabase } from '../lib/supabase'
 import { MODULES, getSession } from '../lib/auth'
 import toast from 'react-hot-toast'
+import { X, UserRound, Pencil, Ban, CircleCheck, Trash2 } from 'lucide-react'
 
 function UserModal({ user, onSave, onClose }) {
   const [form, setForm] = useState(user ? {
@@ -45,7 +46,7 @@ function UserModal({ user, onSave, onClose }) {
       <div className="modal-content glass-card animate-fade" onClick={e => e.stopPropagation()}>
         <div className="modal-header">
           <h3>{user ? 'Edit User' : 'Add User'}</h3>
-          <button className="modal-close-btn" onClick={onClose}>✕</button>
+          <button className="modal-close-btn" onClick={onClose}><X size={16} /></button>
         </div>
 
         <div className="modal-body-custom">
@@ -248,7 +249,7 @@ export default function UserManagement() {
         <div className="glass-card users-table-card">
           {filteredUsers.length === 0 ? (
             <div className="empty-state">
-              <div className="empty-state-icon">👤</div>
+              <div className="empty-state-icon"><UserRound size={26} strokeWidth={1.6} /></div>
               <h3>No users found</h3>
               <p>Add your first team member to get started</p>
             </div>
@@ -295,11 +296,11 @@ export default function UserManagement() {
                         </td>
                         <td>
                           <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
-                            <button className="btn btn-ghost" style={{ padding: 8 }} onClick={() => setEditingUser(u)} title="Edit">✏️</button>
-                            <button className="btn btn-ghost" style={{ padding: 8 }} onClick={() => toggleActive(u)} title={u.active ? 'Deactivate' : 'Activate'}>
-                              {u.active ? '🚫' : '✅'}
+                            <button className="icon-action" onClick={() => setEditingUser(u)} title="Edit"><Pencil size={15} /></button>
+                            <button className="icon-action" onClick={() => toggleActive(u)} title={u.active ? 'Deactivate' : 'Activate'}>
+                              {u.active ? <Ban size={15} /> : <CircleCheck size={15} />}
                             </button>
-                            <button className="btn btn-ghost" style={{ padding: 8, color: '#EF4444' }} onClick={() => deleteUser(u)} title="Delete">🗑️</button>
+                            <button className="icon-action danger" onClick={() => deleteUser(u)} title="Delete"><Trash2 size={15} /></button>
                           </div>
                         </td>
                       </tr>

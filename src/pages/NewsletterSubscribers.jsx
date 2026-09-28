@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from 'react'
 import { useCRM } from '../context/CRMContext'
 import toast from 'react-hot-toast'
+import { Copy, Download, Mail, MailX, X } from 'lucide-react'
 
 // A "newsletter subscriber" is any lead that came from the website newsletter
 // box. New signups are tagged source = "Newsletter"; older ones only carry the
@@ -91,21 +92,21 @@ export default function NewsletterSubscribers() {
   }
 
   return (
-    <div style={{ maxWidth: 900, margin: '0 auto', paddingBottom: 40 }}>
+    <div style={{ paddingBottom: 40 }}>
       <div className="subs-header">
         <div>
           <h1 className="text-gradient">Newsletter Subscribers</h1>
           <p className="text-muted">{subscribers.length} subscribers from the website newsletter</p>
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <button className="btn btn-ghost" onClick={copyEmails}>📋 Copy emails</button>
-          <button className="btn btn-ghost" onClick={exportCSV}>⬇️ Export CSV</button>
-          <button className="btn btn-primary" onClick={() => setShowCompose(true)}>✉️ Bulk Email</button>
+          <button className="btn btn-ghost" onClick={copyEmails}><Copy size={16} /> Copy emails</button>
+          <button className="btn btn-ghost" onClick={exportCSV}><Download size={16} /> Export CSV</button>
+          <button className="btn btn-primary" onClick={() => setShowCompose(true)}><Mail size={16} /> Bulk Email</button>
         </div>
       </div>
 
       <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 14, flexWrap: 'wrap' }}>
-        <input className="glass-input" style={{ maxWidth: 300, padding: '10px 14px', fontSize: 13 }}
+        <input className="glass-input search-input" style={{ marginBottom: 0 }}
           placeholder="Search name or email…" value={search} onChange={e => setSearch(e.target.value)} />
         <span className="text-dim" style={{ fontSize: 13 }}>
           {selected.size ? `${selected.size} selected` : `${filtered.length} shown`}
@@ -116,7 +117,7 @@ export default function NewsletterSubscribers() {
       <div className="glass-card" style={{ padding: 0, overflow: 'hidden' }}>
         {filtered.length === 0 ? (
           <div style={{ padding: 48, textAlign: 'center' }}>
-            <div style={{ fontSize: 44, marginBottom: 10 }}>📭</div>
+            <div className="empty-state-icon"><MailX size={26} strokeWidth={1.6} /></div>
             <h3 style={{ marginBottom: 6 }}>No subscribers yet</h3>
             <p className="text-dim">When visitors sign up on the website newsletter, they appear here.</p>
           </div>
@@ -152,13 +153,13 @@ export default function NewsletterSubscribers() {
           <div className="glass-card" onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 520, padding: 0, display: 'flex', flexDirection: 'column', maxHeight: '90vh' }}>
             <div style={{ padding: '18px 22px', borderBottom: '1px solid var(--border-glass)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h3 style={{ fontSize: 16, fontWeight: 800 }}>Bulk email · {emails.length} recipients</h3>
-              <button onClick={() => setShowCompose(false)} style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(255,255,255,0.05)', border: 'none', color: 'var(--text-dim)', cursor: 'pointer' }}>✕</button>
+              <button className="modal-close-btn" onClick={() => setShowCompose(false)}><X size={16} /></button>
             </div>
             <div style={{ padding: 22, display: 'flex', flexDirection: 'column', gap: 12, overflowY: 'auto' }}>
               <label style={{ display: 'block' }}>
                 <span style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 5, color: 'var(--text-dim)' }}>Subject</span>
                 <input className="glass-input" style={{ width: '100%', padding: '10px 12px', fontSize: 13 }} value={subject}
-                  placeholder="🏔️ New Kashmir offers this month!" onChange={e => setSubject(e.target.value)} />
+                  placeholder="New Kashmir offers this month!" onChange={e => setSubject(e.target.value)} />
               </label>
               <label style={{ display: 'block' }}>
                 <span style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 5, color: 'var(--text-dim)' }}>Message</span>

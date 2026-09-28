@@ -5,6 +5,7 @@ import { usePackage } from '../context/PackageContext'
 import { useCRM } from '../context/CRMContext'
 import { supabase } from '../lib/supabase'
 import toast from 'react-hot-toast'
+import { Plus, X, Map as MapIcon, Search, Pencil, Copy, ArrowLeftRight, Trash2 } from 'lucide-react'
 
 const PAGE_SIZE = 20
 
@@ -27,7 +28,7 @@ function TransferItineraryModal({ pkg, users, onTransfer, onClose }) {
       <div style={card} onClick={e => e.stopPropagation()}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16, gap: 12 }}>
           <h3 style={{ fontSize: 17, fontWeight: 800, margin: 0 }}>Transfer Itinerary</h3>
-          <button className="btn btn-ghost" style={{ padding: 6 }} onClick={onClose}>✕</button>
+          <button className="modal-close-btn" onClick={onClose}><X size={16} /></button>
         </div>
         <p style={{ fontSize: 13, color: 'var(--text-dim, #94a3b8)', marginBottom: 16 }}>
           {pkg.title || 'Untitled'}
@@ -177,7 +178,7 @@ export default function Itinerary() {
           <p style={{ fontSize: 13, color: 'var(--text-dim)' }}>{packages.length} packages created</p>
         </div>
         <button className="btn btn-primary" onClick={handleNew}>
-          <span>+</span> New Itinerary
+          <Plus size={17} /> New Itinerary
         </button>
       </div>
 
@@ -185,7 +186,7 @@ export default function Itinerary() {
         <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
           <select
             className="glass-input"
-            style={{ padding: '8px 12px', fontSize: 13, minWidth: 150 }}
+            style={{ padding: '8px 12px', fontSize: 13, minWidth: 170, width: 'auto' }}
             value={filterDays}
             onChange={e => { setFilterDays(e.target.value); setPage(1) }}
           >
@@ -196,7 +197,7 @@ export default function Itinerary() {
           </select>
           <select
             className="glass-input"
-            style={{ padding: '8px 12px', fontSize: 13, minWidth: 150 }}
+            style={{ padding: '8px 12px', fontSize: 13, minWidth: 170, width: 'auto' }}
             value={filterPlace}
             onChange={e => { setFilterPlace(e.target.value); setPage(1) }}
           >
@@ -211,7 +212,7 @@ export default function Itinerary() {
               style={{ padding: '8px 14px', fontSize: 12.5 }}
               onClick={() => { setFilterDays(''); setFilterPlace(''); setPage(1) }}
             >
-              ✕ Clear Filters
+              <X size={14} /> Clear Filters
             </button>
           )}
           <span style={{ fontSize: 12.5, color: 'var(--text-dim)', marginLeft: 'auto' }}>
@@ -224,17 +225,17 @@ export default function Itinerary() {
         <div className="loading-state"><div className="spinner" /></div>
       ) : packages.length === 0 ? (
         <div className="empty-state">
-          <div className="empty-state-icon">📋</div>
+          <div className="empty-state-icon"><MapIcon size={26} strokeWidth={1.6} /></div>
           <h2>No itineraries yet</h2>
           <p>Create your first travel itinerary</p>
           <button className="btn btn-primary" style={{ marginTop: 16 }} onClick={handleNew}>+ Create Itinerary</button>
         </div>
       ) : filteredPackages.length === 0 ? (
         <div className="empty-state">
-          <div className="empty-state-icon">🔍</div>
+          <div className="empty-state-icon"><Search size={26} strokeWidth={1.6} /></div>
           <h2>No matching itineraries</h2>
           <p>Try adjusting or clearing the filters</p>
-          <button className="btn btn-ghost" style={{ marginTop: 16 }} onClick={() => { setFilterDays(''); setFilterPlace(''); setPage(1) }}>✕ Clear Filters</button>
+          <button className="btn btn-ghost" style={{ marginTop: 16 }} onClick={() => { setFilterDays(''); setFilterPlace(''); setPage(1) }}><X size={14} /> Clear Filters</button>
         </div>
       ) : (
         <div className="glass-card" style={{ padding: 0, overflow: 'hidden' }}>
@@ -258,10 +259,8 @@ export default function Itinerary() {
                     </td>
                     <td>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <div style={{ width: 32, height: 32, borderRadius: 9, background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, flexShrink: 0, color: '#fff' }}>
-                          📋
-                        </div>
-                        <span style={{ fontWeight: 700, fontSize: 13.5 }}>{pkg.title || 'Untitled'}</span>
+                        <span className="entity-icon"><MapIcon size={17} /></span>
+                        <span className="cell-strong">{pkg.title || 'Untitled'}</span>
                       </div>
                     </td>
                     <td style={{ whiteSpace: 'nowrap' }}>{pkg.nights}N / {pkg.days}D</td>
@@ -281,10 +280,10 @@ export default function Itinerary() {
                     </td>
                     <td>
                       <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
-                        <button className="btn btn-ghost" style={{ padding: 8 }} onClick={() => navigate(`/editor/${pkg.id}`)} title="Edit">✏️</button>
-                        <button className="btn btn-ghost" style={{ padding: 8 }} onClick={() => handleDuplicate(pkg.id)} title="Make a copy">📄</button>
-                        <button className="btn btn-ghost" style={{ padding: 8 }} onClick={() => setTransferTarget(pkg)} title="Transfer">🔄</button>
-                        <button className="btn btn-ghost" style={{ padding: 8, color: '#EF4444' }} onClick={() => handleDelete(pkg.id)} title="Delete">🗑️</button>
+                        <button className="icon-action green" onClick={() => navigate(`/editor/${pkg.id}`)} title="Edit"><Pencil size={15} /></button>
+                        <button className="icon-action" onClick={() => handleDuplicate(pkg.id)} title="Make a copy"><Copy size={15} /></button>
+                        <button className="icon-action" onClick={() => setTransferTarget(pkg)} title="Transfer"><ArrowLeftRight size={15} /></button>
+                        <button className="icon-action danger" onClick={() => handleDelete(pkg.id)} title="Delete"><Trash2 size={15} /></button>
                       </div>
                     </td>
                   </tr>

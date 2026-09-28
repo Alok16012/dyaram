@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import {
-  House, Users, CalendarCheck, UserRound, Map, FileText, CreditCard,
+  House, Users, CalendarCheck, UserRound, Map as MapIcon, FileText, CreditCard,
   Hotel, Car, Images, Mail, Globe, Package, TrendingUp, Wallet,
   ScrollText, ShieldCheck, Settings, LogOut, Bell, Search, ChevronDown,
   Menu, User,
@@ -219,7 +219,7 @@ export default function MainLayout({ children, headerActions }) {
       { path: '/customers', label: 'Customers', icon: I(UserRound), module: 'leads' },
     ] },
     { label: 'Operations', items: [
-      { path: '/itinerary', label: 'Itineraries', icon: I(Map), module: 'itinerary' },
+      { path: '/itinerary', label: 'Itineraries', icon: I(MapIcon), module: 'itinerary' },
       { path: '/invoices', label: 'Invoices', icon: I(FileText), module: 'invoices' },
       { path: '/payments', label: 'Payments', icon: I(CreditCard), module: 'bookings' },
     ] },

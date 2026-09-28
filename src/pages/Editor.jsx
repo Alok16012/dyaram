@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
-import { useParams, useNavigate, NavLink } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
+import { ArrowLeft, FileText, Images, IndianRupee, ScrollText, Save, Eye, Printer } from 'lucide-react'
 import { usePackage } from '../context/PackageContext'
 import DayBuilder from '../components/DayBuilder'
 import PreviewModal from '../components/PreviewModal'
@@ -19,7 +20,6 @@ export default function Editor() {
 
   const [activeTab, setActiveTab] = useState('info')
   const [previewOpen, setPreviewOpen] = useState(false)
-  const [sidebarOpen, setSidebarOpen] = useState(false)
   const [tabsSheetOpen, setTabsSheetOpen] = useState(false)
   const saveRef = useRef(null)
 
@@ -84,94 +84,18 @@ export default function Editor() {
   }
 
   const tabs = [
-    { id: 'info', label: 'Basics', icon: '📝' },
-    { id: 'photos', label: 'Media', icon: '🖼️' },
-    { id: 'pricing', label: 'Rates', icon: '💰' },
-    { id: 'tc', label: 'T&C', icon: '📄' },
-  ]
-
-  const navGroups = [
-    {
-      label: 'Main',
-      items: [
-        { path: '/', label: 'Dashboard', icon: '📊' },
-      ],
-    },
-    {
-      label: 'Sales & CRM',
-      items: [
-        { path: '/leads', label: 'Leads', icon: '👥' },
-        { path: '/bookings', label: 'Bookings', icon: '📅' },
-      ],
-    },
-    {
-      label: 'Operations',
-      items: [
-        { path: '/itinerary', label: 'Itinerary', icon: '📋' },
-        { path: '/invoices', label: 'Invoices', icon: '🧾' },
-      ],
-    },
-    {
-      label: 'Resources',
-      items: [
-        { path: '/hotels', label: 'Hotels', icon: '🏨' },
-        { path: '/cabs', label: 'Cabs', icon: '🚕' },
-        { path: '/photos', label: 'Photos', icon: '🖼️' },
-      ],
-    },
-    {
-      label: 'Admin',
-      items: [
-        { path: '/income', label: 'Income', icon: '💰' },
-        { path: '/expenses', label: 'Expenses', icon: '📉' },
-        { path: '/audit-logs', label: 'Audit Logs', icon: '📜' },
-        { path: '/admin', label: 'Settings', icon: '⚙️' },
-      ],
-    },
+    { id: 'info', label: 'Basics', icon: <FileText size={17} /> },
+    { id: 'photos', label: 'Media', icon: <Images size={17} /> },
+    { id: 'pricing', label: 'Rates', icon: <IndianRupee size={17} /> },
+    { id: 'tc', label: 'T&C', icon: <ScrollText size={17} /> },
   ]
 
   return (
-    <div className="editor-layout">
-      <div className={`editor-sidebar-overlay ${sidebarOpen ? 'active' : ''}`} onClick={() => setSidebarOpen(false)} />
-      
-      <aside className={`editor-sidebar ${sidebarOpen ? 'open' : ''}`}>
-        <NavLink to="/" className="brand" onClick={() => setSidebarOpen(false)}>
-          <div className="brand-logo">ST</div>
-          <span className="brand-name">Shera Travels</span>
-        </NavLink>
-
-        <nav className="nav-links">
-          {navGroups.map(group => (
-            <div key={group.label} className="nav-group">
-              <div className="nav-group-label">{group.label}</div>
-              {group.items.map(item => (
-                <NavLink
-                  key={item.path}
-                  to={item.path}
-                  className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
-                  onClick={() => setSidebarOpen(false)}
-                >
-                  <span className="nav-icon">{item.icon}</span>
-                  <span className="nav-label">{item.label}</span>
-                </NavLink>
-              ))}
-            </div>
-          ))}
-        </nav>
-
-        <div className="nav-footer">
-          <button onClick={() => { localStorage.removeItem('shara_auth'); navigate('/login') }} className="logout-btn">
-            <span>🚪</span>
-            <span>Logout</span>
-          </button>
-        </div>
-      </aside>
-
+    <div className="editor-page">
       <div className="editor-canvas">
         <div className="editor-top-bar glass-card animate-fade">
           <div className="top-bar-left">
-            <button className="icon-btn back-btn mobile-show" onClick={() => setSidebarOpen(true)}>☰</button>
-            <button className="icon-btn back-btn mobile-hide" onClick={() => navigate('/')}>←</button>
+            <button className="icon-action" onClick={() => navigate('/itinerary')} title="Back to itineraries"><ArrowLeft size={18} /></button>
             <div className="pkg-info">
               <h3 className="text-gradient">{pkg.title || 'Untitled Package'}</h3>
               <div className={`save-status ${saveStatus}`}>
@@ -189,13 +113,13 @@ export default function Editor() {
               }}
               title="Save now"
             >
-              <span>💾</span><span className="mobile-save-label"> Save</span>
+              <Save size={16} /><span className="mobile-save-label"> Save</span>
             </button>
             <button className="btn btn-ghost" onClick={() => setPreviewOpen(true)}>
-              <span>👁️</span><span className="desktop-only"> Preview</span>
+              <Eye size={16} /><span className="desktop-only"> Preview</span>
             </button>
             <button className="btn btn-primary" onClick={handlePrint}>
-              <span>🖨️</span><span className="desktop-only"> Export PDF</span>
+              <Printer size={16} /><span className="desktop-only"> Export PDF</span>
             </button>
           </div>
         </div>

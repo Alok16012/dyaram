@@ -4,6 +4,7 @@ import html2canvas from 'html2canvas'
 import { jsPDF } from 'jspdf'
 import { supabase } from '../lib/supabase'
 import toast from 'react-hot-toast'
+import { X, Download, Receipt } from 'lucide-react'
 // Reference public/ asset by URL instead of importing (avoids base64-inlining
 // the logo into this chunk).
 const logoUrl = '/logo.png'
@@ -243,7 +244,7 @@ export default function InvoiceGenerator() {
           <h1 className="text-gradient">Invoice Generator</h1>
         </div>
         <button className="btn btn-primary" onClick={saveAndDownload} disabled={saving}>
-          {saving ? 'Working...' : '💾 Save & Download PDF'}
+          {saving ? 'Working...' : <><Download size={16} /> Save &amp; Download PDF</>}
         </button>
       </div>
 
@@ -322,7 +323,7 @@ export default function InvoiceGenerator() {
                 <div className="ig-item-row-head">
                   <span className="ig-item-num">Item {idx + 1}</span>
                   {items.length > 1 && (
-                    <button className="ig-item-remove" onClick={() => removeItem(item.id)}>✕ Remove</button>
+                    <button className="ig-item-remove" onClick={() => removeItem(item.id)}><X size={13} /> Remove</button>
                   )}
                 </div>
                 <div className="form-field">
@@ -394,8 +395,8 @@ export default function InvoiceGenerator() {
                       </span>
                     </div>
                     <div className="pay-row-actions">
-                      <button className="btn btn-ghost" style={{ padding: '4px 8px', fontSize: 11 }} onClick={() => downloadReceipt(p)} title="Download receipt">🧾 Receipt</button>
-                      <button className="pay-remove" onClick={() => removePayment(p.id)} title="Remove">✕</button>
+                      <button className="btn btn-ghost" style={{ padding: '4px 8px', fontSize: 11 }} onClick={() => downloadReceipt(p)} title="Download receipt"><Receipt size={13} /> Receipt</button>
+                      <button className="pay-remove" onClick={() => removePayment(p.id)} title="Remove"><X size={13} /></button>
                     </div>
                   </div>
                 ))}

@@ -5,6 +5,7 @@ import toast from 'react-hot-toast'
 import { saveCredentials, clearCredentials, getStoredCredentials, isLive, isDemo } from '../lib/supabase'
 import { resetDemoData } from '../lib/demoData'
 import { isAdmin } from '../lib/auth'
+import { ShieldCheck, FlaskConical, Database, Building2, IndianRupee, X } from 'lucide-react'
 
 const DEFAULT_COMPANY = {
   name: 'Shera Travels',
@@ -92,7 +93,7 @@ export default function Admin() {
         {isAdmin() && (
           <section className="glass-card settings-card">
             <div className="settings-head">
-              <div className="settings-icon">🔐</div>
+              <div className="settings-icon"><ShieldCheck size={20} /></div>
               <div>
                 <h3>Users & Roles</h3>
                 <p className="text-dim">Create accounts and control per-module access.</p>
@@ -112,7 +113,7 @@ export default function Admin() {
         {isDemo && (
           <section className="glass-card settings-card">
             <div className="settings-head">
-              <div className="settings-icon">🧪</div>
+              <div className="settings-icon"><FlaskConical size={20} /></div>
               <div>
                 <h3>Demo Mode</h3>
                 <p className="text-dim">Running on sample data stored in this browser.</p>
@@ -140,7 +141,7 @@ export default function Admin() {
 
         <section className="glass-card settings-card">
           <div className="settings-head">
-            <div className="settings-icon">🗄️</div>
+            <div className="settings-icon"><Database size={20} /></div>
             <div>
               <h3>Supabase Database</h3>
               <p className="text-dim">Connect your cloud database.</p>
@@ -184,7 +185,7 @@ export default function Admin() {
 
         <section className="glass-card settings-card">
           <div className="settings-head">
-            <div className="settings-icon">🏢</div>
+            <div className="settings-icon"><Building2 size={20} /></div>
             <div>
               <h3>Company Profile</h3>
               <p className="text-dim">Your brand details.</p>
@@ -216,7 +217,7 @@ export default function Admin() {
 
         <section className="glass-card settings-card full-width">
           <div className="settings-head">
-            <div className="settings-icon">💰</div>
+            <div className="settings-icon"><IndianRupee size={20} /></div>
             <div>
               <h3>Default Price Templates</h3>
               <p className="text-dim">Pre-fill package pricing.</p>
@@ -245,7 +246,7 @@ export default function Admin() {
                     <td><input className="table-inline-input" type="number" value={t.price} onChange={e => {
                       const up = [...templates]; up[i].price = Number(e.target.value); setTemplates(up);
                     }} /></td>
-                    <td><button className="icon-btn" onClick={() => setTemplates(templates.filter((_, idx) => idx !== i))}>✕</button></td>
+                    <td><button className="icon-btn" onClick={() => setTemplates(templates.filter((_, idx) => idx !== i))}><X size={14} /></button></td>
                   </tr>
                 ))}
               </tbody>
@@ -277,13 +278,13 @@ export default function Admin() {
         }
 
         .settings-icon {
-          width: 48px;
-          height: 48px;
-          background: rgba(255, 255, 255, 0.05);
+          width: 44px;
+          height: 44px;
+          background: var(--primary-light); color: var(--primary);
           display: flex;
           align-items: center;
           justify-content: center;
-          border-radius: 12px;
+          border-radius: 50%;
           font-size: 22px;
           flex-shrink: 0;
         }

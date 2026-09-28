@@ -1,15 +1,16 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import toast from 'react-hot-toast'
+import { Plus, Search, Hotel, MapPin, Star, IndianRupee, Pencil, Trash2, Phone, X } from 'lucide-react'
+import { PageHeader, StatCard, EmptyState } from '../components/ui'
+import { inr } from '../lib/ui'
 
 function StarRating({ rating = 0 }) {
   const full = Math.max(0, Math.min(5, Number(rating) || 0))
   return (
-    <span>
+    <span className="stars">
       {Array.from({ length: 5 }).map((_, i) => (
-        <span key={i} style={{ color: i < full ? '#F59E0B' : 'var(--border-glass)' }}>
-          {i < full ? '★' : '☆'}
-        </span>
+        <Star key={i} size={14} fill={i < full ? '#F5A623' : 'none'} color={i < full ? '#F5A623' : '#D5DCE4'} strokeWidth={1.6} />
       ))}
     </span>
   )
@@ -27,7 +28,7 @@ function HotelModal({ hotel, onSave, onClose }) {
       <div className="modal-content glass-card animate-fade" onClick={e => e.stopPropagation()}>
         <div className="modal-header">
           <h3>{hotel ? 'Edit Hotel' : 'Add Hotel'}</h3>
-          <button className="modal-close-btn" onClick={onClose}>✕</button>
+          <button className="modal-close-btn" onClick={onClose}><X size={16} /></button>
         </div>
 
         <div className="modal-body-custom">
@@ -177,85 +178,84 @@ export default function Hotels() {
 
   const filteredHotels = hotels.filter(h => {
     const q = search.toLowerCase()
-    return h.name?.toLowerCase().includes(q) || h.location?.toLowerCase().includes(q)
+    return !q || h.name?.toLowerCase().includes(q) || h.location?.toLowerCase().includes(q) || h.contact_person?.toLowerCase().includes(q)
   })
+  const locations = new Set(hotels.map(h => (h.location || '').split(',').pop().trim()).filter(Boolean))
+  const avgStar = hotels.length ? (hotels.reduce((a, h) => a + (Number(h.star_rating) || 0), 0) / hotels.length).toFixed(1) : '0'
+  const avgRate = hotels.length ? hotels.reduce((a, h) => a + (Number(h.rate_per_night) || 0), 0) / hotels.length : 0
 
   return (
-    <div className="hotels-page">
-      <div className="hotels-header">
-        <div>
-          <h1 className="text-gradient">Hotels</h1>
-          <p className="text-muted">{hotels.length} hotel partners</p>
+    <div>
+      <PageHeader
+        title="Hotels"
+        subtitle={`${hotels.length} hotel partners across ${locations.size} locations`}
+        actions={<button className="btn btn-primary" onClick={() => setShowAdd(true)}><Plus size={17} /> Add Hotel</button>}
+      />
+
+      <div className="kpi-grid">
+        <StatCard icon={Hotel} tone="blue" label="Hotel Partners" value={hotels.length} />
+        <StatCard icon={MapPin} tone="green" label="Locations" value={locations.size} />
+        <StatCard icon={Star} tone="orange" label="Avg. Star Rating" value={avgStar} />
+        <StatCard icon={IndianRupee} tone="purple" label="Avg. Rate / Night" value={inr(avgRate)} />
+      </div>
+
+      <div className="card">
+        <div className="toolbar">
+          <div className="toolbar-search">
+            <Search size={16} />
+            <input placeholder="Search by name, location or contact..." value={search} onChange={e => setSearch(e.target.value)} />
+          </div>
         </div>
-        <button className="btn btn-primary" onClick={() => setShowAdd(true)}>
-          + Add Hotel
-        </button>
-      </div>
-
-      <div className="filter-row">
-        <input
-          className="glass-input search-input"
-          placeholder="Search by name or location..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-        />
-      </div>
-
-      {loading ? (
-        <div className="loading-state"><div className="spinner" /></div>
-      ) : (
-        <div className="glass-card hotels-table-card">
-          {filteredHotels.length === 0 ? (
-            <div className="empty-state">
-              <div className="empty-state-icon">🏨</div>
-              <h3>No hotels found</h3>
-              <p>Add your first hotel partner to get started</p>
-            </div>
-          ) : (
-            <div className="hotels-table-scroll">
-              <table className="modern-table">
-                <thead>
-                  <tr>
-                    <th>Hotel</th>
-                    <th>Star Rating</th>
-                    <th>Contact Person</th>
-                    <th>Phone</th>
-                    <th>Rate/Night</th>
-                    <th style={{ textAlign: 'right' }}>Actions</th>
+        {loading ? (
+          <div className="loading-state"><div className="spinner" /></div>
+        ) : filteredHotels.length === 0 ? (
+          <EmptyState icon={Hotel} title="No hotels found" text="Add your first hotel partner to get started."
+            action={<button className="btn btn-primary btn-sm" onClick={() => setShowAdd(true)}><Plus size={15} /> Add Hotel</button>} />
+        ) : (
+          <div className="table-wrap">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Hotel</th>
+                  <th>Rating</th>
+                  <th>Contact Person</th>
+                  <th>Phone</th>
+                  <th>Email</th>
+                  <th className="text-right">Rate / Night</th>
+                  <th className="text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredHotels.map(hotel => (
+                  <tr key={hotel.id} onClick={() => setEditingHotel(hotel)}>
+                    <td>
+                      <div className="person-cell">
+                        <span className="entity-icon"><Hotel size={17} /></span>
+                        <div>
+                          <div className="cell-strong">{hotel.name}</div>
+                          <div className="cell-sub">{hotel.location || '—'}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td><StarRating rating={hotel.star_rating} /></td>
+                    <td>{hotel.contact_person || '—'}</td>
+                    <td>{hotel.phone || '—'}</td>
+                    <td>{hotel.email || '—'}</td>
+                    <td className="cell-strong text-right">{hotel.rate_per_night ? inr(hotel.rate_per_night) : '—'}</td>
+                    <td onClick={e => e.stopPropagation()}>
+                      <div className="row-actions">
+                        {hotel.phone && <a className="icon-action blue" href={`tel:${hotel.phone.replace(/\s/g, '')}`} title="Call"><Phone size={15} /></a>}
+                        <button className="icon-action" onClick={() => setEditingHotel(hotel)} title="Edit"><Pencil size={15} /></button>
+                        <button className="icon-action danger" onClick={() => handleDelete(hotel.id)} title="Delete"><Trash2 size={15} /></button>
+                      </div>
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {filteredHotels.map(hotel => (
-                    <tr key={hotel.id}>
-                      <td>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                          <div style={{ width: 32, height: 32, borderRadius: 9, background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, flexShrink: 0, color: '#fff' }}>
-                            🏨
-                          </div>
-                          <div style={{ display: 'flex', flexDirection: 'column' }}>
-                            <span style={{ fontWeight: 700, fontSize: 13.5 }}>{hotel.name}</span>
-                            <span style={{ fontSize: 11.5, color: 'var(--text-dim)' }}>{hotel.location || '—'}</span>
-                          </div>
-                        </div>
-                      </td>
-                      <td><StarRating rating={hotel.star_rating} /></td>
-                      <td>{hotel.contact_person || '—'}</td>
-                      <td>{hotel.phone || '—'}</td>
-                      <td>{hotel.rate_per_night ? `₹${Number(hotel.rate_per_night).toLocaleString('en-IN')}` : '—'}</td>
-                      <td>
-                        <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
-                          <button className="btn btn-ghost" style={{ padding: 8 }} onClick={() => setEditingHotel(hotel)} title="Edit">✏️</button>
-                          <button className="btn btn-ghost" style={{ padding: 8, color: '#EF4444' }} onClick={() => handleDelete(hotel.id)} title="Delete">🗑️</button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-      )}
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
 
       {(showAdd || editingHotel) && (
         <HotelModal
@@ -265,112 +265,6 @@ export default function Hotels() {
         />
       )}
 
-      <style jsx>{`
-        .hotels-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: flex-end;
-          margin-bottom: 24px;
-          gap: 16px;
-        }
-        .hotels-header h1 { font-size: 28px; font-weight: 800; margin-bottom: 4px; }
-        .hotels-header .btn { white-space: nowrap; }
-
-        .filter-row {
-          margin-bottom: 20px;
-        }
-        .search-input {
-          max-width: 300px;
-        }
-
-        .hotels-table-card {
-          padding: 0;
-          overflow: hidden;
-        }
-        .hotels-table-scroll {
-          overflow-x: auto;
-        }
-
-        .modal-overlay {
-          position: fixed;
-          inset: 0;
-          background: rgba(0,0,0,0.7);
-          backdrop-filter: blur(4px);
-          z-index: 1000;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 16px;
-        }
-        .modal-content {
-          width: 100%;
-          max-width: 500px;
-          max-height: 90vh;
-          overflow-y: auto;
-        }
-        .modal-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 20px 24px;
-          border-bottom: 1px solid var(--border-glass);
-        }
-        .modal-header h3 { font-size: 18px; font-weight: 800; }
-        .modal-close-btn {
-          width: 32px;
-          height: 32px;
-          border-radius: 8px;
-          background: #F1F5F9;
-          border: none;
-          color: var(--text-dim);
-          cursor: pointer;
-          font-size: 14px;
-        }
-        .modal-close-btn:hover {
-          background: rgba(239,68,68,0.2);
-          color: #ef4444;
-        }
-        .modal-body-custom {
-          padding: 24px;
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-        }
-        .form-row {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 16px;
-        }
-        .form-field {
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-        }
-        .form-field label {
-          font-size: 11px;
-          font-weight: 700;
-          color: var(--text-muted);
-          text-transform: uppercase;
-        }
-        .modal-footer-custom {
-          display: flex;
-          justify-content: flex-end;
-          gap: 12px;
-          padding: 16px 24px;
-          border-top: 1px solid var(--border-glass);
-          background: #F8FAFC;
-        }
-
-        @media (max-width: 768px) {
-          .hotels-header {
-            flex-direction: column;
-            align-items: flex-start;
-          }
-          .hotels-header h1 { font-size: 22px; }
-          .hotels-header .btn { width: 100%; justify-content: center; }
-          .search-input { max-width: 100%; }
-        }
-      `}</style>
     </div>
   )
 }

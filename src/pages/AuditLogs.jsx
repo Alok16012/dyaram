@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import toast from 'react-hot-toast'
+import { X, ScrollText } from 'lucide-react'
 
 function AddNoteModal({ onSave, onClose }) {
   const [form, setForm] = useState({ action: '', details: '' })
@@ -18,7 +19,7 @@ function AddNoteModal({ onSave, onClose }) {
       <div className="modal-content glass-card animate-fade" onClick={e => e.stopPropagation()}>
         <div className="modal-header">
           <h3>Add Note</h3>
-          <button className="modal-close-btn" onClick={onClose}>✕</button>
+          <button className="modal-close-btn" onClick={onClose}><X size={16} /></button>
         </div>
 
         <div className="modal-body-custom">
@@ -110,7 +111,7 @@ export default function AuditLogs() {
         <div className="glass-card audit-table-card">
           {filteredLogs.length === 0 ? (
             <div className="empty-state">
-              <div className="empty-state-icon">📜</div>
+              <div className="empty-state-icon"><ScrollText size={26} strokeWidth={1.6} /></div>
               <h3>No audit events found</h3>
               <p>Logins and system activity will appear here</p>
             </div>

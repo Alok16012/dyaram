@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import toast from 'react-hot-toast'
+import { Plus, Search, Car, Users, IndianRupee, CarTaxiFront, Pencil, Trash2, Phone, X } from 'lucide-react'
+import { PageHeader, StatCard, EmptyState, Pill } from '../components/ui'
+import { inr } from '../lib/ui'
 
 const RATE_UNITS = ['per day', 'per km', 'per trip']
 
@@ -15,7 +18,7 @@ function CabModal({ cab, onSave, onClose }) {
       <div className="modal-content glass-card animate-fade" onClick={e => e.stopPropagation()}>
         <div className="modal-header">
           <h3>{cab ? 'Edit Cab Vendor' : 'Add Cab Vendor'}</h3>
-          <button className="modal-close-btn" onClick={onClose}>✕</button>
+          <button className="modal-close-btn" onClick={onClose}><X size={16} /></button>
         </div>
 
         <div className="modal-body-custom">
@@ -158,83 +161,82 @@ export default function Cabs() {
 
   const filteredCabs = cabs.filter(c => {
     const q = search.toLowerCase()
-    return c.vendor_name?.toLowerCase().includes(q) || c.vehicle_type?.toLowerCase().includes(q)
+    return !q || c.vendor_name?.toLowerCase().includes(q) || c.vehicle_type?.toLowerCase().includes(q) || c.contact_person?.toLowerCase().includes(q)
   })
+  const vehicleTypes = new Set(cabs.map(c => c.vehicle_type).filter(Boolean))
+  const daily = cabs.filter(c => c.rate_unit === 'per day')
+  const avgDaily = daily.length ? daily.reduce((a, c) => a + (Number(c.rate) || 0), 0) / daily.length : 0
 
   return (
-    <div className="cabs-page">
-      <div className="cabs-header">
-        <div>
-          <h1 className="text-gradient">Cabs</h1>
-          <p className="text-muted">{cabs.length} cab vendors</p>
+    <div>
+      <PageHeader
+        title="Cabs"
+        subtitle={`${cabs.length} cab vendors and vehicles`}
+        actions={<button className="btn btn-primary" onClick={() => setShowAdd(true)}><Plus size={17} /> Add Cab Vendor</button>}
+      />
+
+      <div className="kpi-grid">
+        <StatCard icon={Users} tone="blue" label="Cab Vendors" value={cabs.length} />
+        <StatCard icon={Car} tone="green" label="Vehicle Types" value={vehicleTypes.size} />
+        <StatCard icon={IndianRupee} tone="orange" label="Avg. Daily Rate" value={inr(avgDaily)} />
+        <StatCard icon={CarTaxiFront} tone="purple" label="Per-Trip Vendors" value={cabs.filter(c => c.rate_unit === 'per trip').length} />
+      </div>
+
+      <div className="card">
+        <div className="toolbar">
+          <div className="toolbar-search">
+            <Search size={16} />
+            <input placeholder="Search by vendor, vehicle or contact..." value={search} onChange={e => setSearch(e.target.value)} />
+          </div>
         </div>
-        <button className="btn btn-primary" onClick={() => setShowAdd(true)}>
-          + Add Cab Vendor
-        </button>
-      </div>
-
-      <div className="filter-row">
-        <input
-          className="glass-input search-input"
-          placeholder="Search by vendor or vehicle type..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-        />
-      </div>
-
-      {loading ? (
-        <div className="loading-state"><div className="spinner" /></div>
-      ) : (
-        <div className="glass-card cabs-table-card">
-          {filteredCabs.length === 0 ? (
-            <div className="empty-state">
-              <div className="empty-state-icon">🚕</div>
-              <h3>No cab vendors found</h3>
-              <p>Add your first cab vendor to get started</p>
-            </div>
-          ) : (
-            <div className="cabs-table-scroll">
-              <table className="modern-table">
-                <thead>
-                  <tr>
-                    <th>Vendor</th>
-                    <th>Contact Person</th>
-                    <th>Phone</th>
-                    <th>Rate</th>
-                    <th style={{ textAlign: 'right' }}>Actions</th>
+        {loading ? (
+          <div className="loading-state"><div className="spinner" /></div>
+        ) : filteredCabs.length === 0 ? (
+          <EmptyState icon={Car} title="No cab vendors found" text="Add your first cab vendor to get started."
+            action={<button className="btn btn-primary btn-sm" onClick={() => setShowAdd(true)}><Plus size={15} /> Add Cab Vendor</button>} />
+        ) : (
+          <div className="table-wrap">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Vendor</th>
+                  <th>Vehicle Type</th>
+                  <th>Contact Person</th>
+                  <th>Phone</th>
+                  <th className="text-right">Rate</th>
+                  <th className="text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredCabs.map(cab => (
+                  <tr key={cab.id} onClick={() => setEditingCab(cab)}>
+                    <td>
+                      <div className="person-cell">
+                        <span className="entity-icon blue"><Car size={17} /></span>
+                        <div>
+                          <div className="cell-strong">{cab.vendor_name}</div>
+                          {cab.notes && <div className="cell-sub">{cab.notes}</div>}
+                        </div>
+                      </div>
+                    </td>
+                    <td><Pill tone="gray">{cab.vehicle_type || '—'}</Pill></td>
+                    <td>{cab.contact_person || '—'}</td>
+                    <td>{cab.phone || '—'}</td>
+                    <td className="text-right"><span className="cell-strong">{cab.rate ? inr(cab.rate) : '—'}</span> <span className="dim">{cab.rate ? cab.rate_unit : ''}</span></td>
+                    <td onClick={e => e.stopPropagation()}>
+                      <div className="row-actions">
+                        {cab.phone && <a className="icon-action blue" href={`tel:${cab.phone.replace(/\s/g, '')}`} title="Call"><Phone size={15} /></a>}
+                        <button className="icon-action" onClick={() => setEditingCab(cab)} title="Edit"><Pencil size={15} /></button>
+                        <button className="icon-action danger" onClick={() => handleDelete(cab.id)} title="Delete"><Trash2 size={15} /></button>
+                      </div>
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {filteredCabs.map(cab => (
-                    <tr key={cab.id}>
-                      <td>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                          <div style={{ width: 32, height: 32, borderRadius: 9, background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, flexShrink: 0, color: '#fff' }}>
-                            🚕
-                          </div>
-                          <div style={{ display: 'flex', flexDirection: 'column' }}>
-                            <span style={{ fontWeight: 700, fontSize: 13.5 }}>{cab.vendor_name}</span>
-                            <span style={{ fontSize: 11.5, color: 'var(--text-dim)' }}>{cab.vehicle_type || '—'}</span>
-                          </div>
-                        </div>
-                      </td>
-                      <td>{cab.contact_person || '—'}</td>
-                      <td>{cab.phone || '—'}</td>
-                      <td>{cab.rate ? `₹${Number(cab.rate).toLocaleString('en-IN')} ${cab.rate_unit || ''}` : '—'}</td>
-                      <td>
-                        <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
-                          <button className="btn btn-ghost" style={{ padding: 8 }} onClick={() => setEditingCab(cab)} title="Edit">✏️</button>
-                          <button className="btn btn-ghost" style={{ padding: 8, color: '#EF4444' }} onClick={() => handleDelete(cab.id)} title="Delete">🗑️</button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-      )}
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
 
       {(showAdd || editingCab) && (
         <CabModal
@@ -244,112 +246,6 @@ export default function Cabs() {
         />
       )}
 
-      <style jsx>{`
-        .cabs-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: flex-end;
-          margin-bottom: 24px;
-          gap: 16px;
-        }
-        .cabs-header h1 { font-size: 28px; font-weight: 800; margin-bottom: 4px; }
-        .cabs-header .btn { white-space: nowrap; }
-
-        .filter-row {
-          margin-bottom: 20px;
-        }
-        .search-input {
-          max-width: 300px;
-        }
-
-        .cabs-table-card {
-          padding: 0;
-          overflow: hidden;
-        }
-        .cabs-table-scroll {
-          overflow-x: auto;
-        }
-
-        .modal-overlay {
-          position: fixed;
-          inset: 0;
-          background: rgba(0,0,0,0.7);
-          backdrop-filter: blur(4px);
-          z-index: 1000;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 16px;
-        }
-        .modal-content {
-          width: 100%;
-          max-width: 500px;
-          max-height: 90vh;
-          overflow-y: auto;
-        }
-        .modal-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 20px 24px;
-          border-bottom: 1px solid var(--border-glass);
-        }
-        .modal-header h3 { font-size: 18px; font-weight: 800; }
-        .modal-close-btn {
-          width: 32px;
-          height: 32px;
-          border-radius: 8px;
-          background: #F1F5F9;
-          border: none;
-          color: var(--text-dim);
-          cursor: pointer;
-          font-size: 14px;
-        }
-        .modal-close-btn:hover {
-          background: rgba(239,68,68,0.2);
-          color: #ef4444;
-        }
-        .modal-body-custom {
-          padding: 24px;
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-        }
-        .form-row {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 16px;
-        }
-        .form-field {
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-        }
-        .form-field label {
-          font-size: 11px;
-          font-weight: 700;
-          color: var(--text-muted);
-          text-transform: uppercase;
-        }
-        .modal-footer-custom {
-          display: flex;
-          justify-content: flex-end;
-          gap: 12px;
-          padding: 16px 24px;
-          border-top: 1px solid var(--border-glass);
-          background: #F8FAFC;
-        }
-
-        @media (max-width: 768px) {
-          .cabs-header {
-            flex-direction: column;
-            align-items: flex-start;
-          }
-          .cabs-header h1 { font-size: 22px; }
-          .cabs-header .btn { width: 100%; justify-content: center; }
-          .search-input { max-width: 100%; }
-        }
-      `}</style>
     </div>
   )
 }

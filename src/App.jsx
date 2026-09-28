@@ -73,11 +73,6 @@ const AdminRoute = ({ children }) => {
   return <MainLayout>{children}</MainLayout>
 }
 
-const StandaloneRoute = ({ children }) => {
-  const isAuth = localStorage.getItem('shara_auth') === 'true'
-  return isAuth ? children : <Navigate to="/login" replace />
-}
-
 export default function App() {
   return (
     <BrowserRouter>
@@ -93,7 +88,7 @@ export default function App() {
               {/* ── Protected Dashboard ── */}
               <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
               <Route path="/itinerary" element={<ProtectedRoute module="itinerary"><Itinerary /></ProtectedRoute>} />
-              <Route path="/editor/:id" element={<StandaloneRoute><Editor /></StandaloneRoute>} />
+              <Route path="/editor/:id" element={<ProtectedRoute module="itinerary"><Editor /></ProtectedRoute>} />
               <Route path="/admin" element={<ProtectedRoute module="admin"><Admin /></ProtectedRoute>} />
               <Route path="/users" element={<AdminRoute><UserManagement /></AdminRoute>} />
               <Route path="/website-content" element={<AdminRoute><WebsiteContent /></AdminRoute>} />

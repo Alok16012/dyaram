@@ -6,7 +6,7 @@
 // always populated.
 
 const DEMO_SEED_KEY = 'demo_seed_version'
-const DEMO_SEED_VERSION = '3'
+const DEMO_SEED_VERSION = '4'
 
 // Login: admin / admin123 (full access), sales / demo123 (limited access)
 const ADMIN_HASH = '$2b$10$LIni/cQRHOqDOWnbW7lsC.gFwy/u98bAVRCYsz9Fa9Q02gp8mUCVe'
@@ -259,6 +259,19 @@ function buildDemoData() {
       }
     }
   }
+
+  // ── Newsletter subscribers (website signups) ──
+  ;['Ritu Malhotra', 'Sameer Kulkarni', 'Neelam Joshi', 'Arjun Sethi', 'Pallavi Rao', 'Farhan Mir',
+    'Kriti Arora', 'Vikas Tiwari', 'Megha Kapoor', 'Hina Wani'].forEach((name, i) => {
+    leads.push({
+      id: `lead-nl${i + 1}`, name, phone: null, whatsapp: null,
+      email: `${name.toLowerCase().replace(/[^a-z]+/g, '.')}@example.com`,
+      destination: null, travel_date: null, return_date: null, adults: 1, children: 0, infants: 0,
+      budget_min: null, budget_max: null, stage: 'new_inquiry', source: 'Newsletter', package_id: null,
+      assigned_to: null, assigned_name: null, notes: 'Newsletter signup from website',
+      created_at: ago(3 + i * 11), updated_at: ago(3 + i * 11),
+    })
+  })
 
   // ── Invoices ──
   const invoices = bookings.filter(b => b.status !== 'cancelled').slice(0, 14).map((b, i) => {

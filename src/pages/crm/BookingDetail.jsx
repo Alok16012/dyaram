@@ -5,6 +5,7 @@ import { supabase } from '../../lib/supabase'
 import { sendInvoiceEmail, printInvoice, printReceipt } from '../../lib/email'
 import EditBookingModal from '../../components/crm/EditBookingModal'
 import toast from 'react-hot-toast'
+import { SearchX, ArrowLeft, Pencil, Trash2, ClipboardList, CreditCard, Share2, Printer, Mail } from 'lucide-react'
 
 const fmt = (n) => `₹${Number(n || 0).toLocaleString('en-IN')}`
 
@@ -43,7 +44,7 @@ export default function BookingDetail() {
     // Not loading and still no booking → true not-found state
     return (
       <div className="page-content center" style={{ textAlign: 'center', padding: '60px 20px' }}>
-        <div style={{ fontSize: '48px', marginBottom: '12px' }}>🔍</div>
+        <div className="empty-state-icon" style={{ width: 56, height: 56, borderRadius: '50%', background: '#F1F5F9', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}><SearchX size={26} strokeWidth={1.6} /></div>
         <h2 style={{ marginBottom: '8px' }}>Booking not found</h2>
         <p className="text-dim" style={{ marginBottom: '24px' }}>
           This booking doesn't exist on this device. It may have been created in another browser
@@ -65,9 +66,9 @@ export default function BookingDetail() {
     <div className="booking-detail-page page-content">
       <div className="detail-header animate-fade">
         <div className="header-left">
-          <button className="icon-btn back-btn" onClick={() => navigate('/bookings')}>←</button>
+          <button className="icon-action back-btn" onClick={() => navigate('/bookings')} title="Back"><ArrowLeft size={18} /></button>
           <div className="title-block">
-            <h2 className="text-gradient">{booking?.booking_ref}</h2>
+            <h2 className="text-gradient" style={{ fontSize: 22, fontWeight: 600 }}>{booking?.booking_ref}</h2>
             <p className="text-dim">{booking?.customer_name} • {booking?.destination || 'Trip'}</p>
           </div>
         </div>
@@ -79,8 +80,8 @@ export default function BookingDetail() {
           >
             {BOOKING_STATUSES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
           </select>
-          <button className="btn action-edit" onClick={() => setShowEdit(true)}>✏️ Edit</button>
-          <button className="btn action-delete" onClick={handleDelete}>🗑️ Delete</button>
+          <button className="btn btn-ghost" onClick={() => setShowEdit(true)}><Pencil size={15} /> Edit</button>
+          <button className="btn btn-danger" onClick={handleDelete}><Trash2 size={15} /> Delete</button>
         </div>
       </div>
 
@@ -118,13 +119,13 @@ export default function BookingDetail() {
       <div className="detail-workspace animate-fade" style={{ animationDelay: '0.2s' }}>
         <aside className="detail-tabs glass-card">
           <button className={`detail-tab ${activeTab === 'summary' ? 'active' : ''}`} onClick={() => setActiveTab('summary')}>
-            📋 Trip Summary
+            <ClipboardList size={16} /> Trip Summary
           </button>
           <button className={`detail-tab ${activeTab === 'payments' ? 'active' : ''}`} onClick={() => setActiveTab('payments')}>
-            💳 Payment History
+            <CreditCard size={16} /> Payment History
           </button>
           <button className={`detail-tab ${activeTab === 'share' ? 'active' : ''}`} onClick={() => setActiveTab('share')}>
-            📤 Guest Access
+            <Share2 size={16} /> Guest Access
           </button>
         </aside>
 
@@ -157,7 +158,7 @@ export default function BookingDetail() {
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                   <button className="btn btn-ghost" style={{ fontSize: 12, padding: '6px 14px' }}
                     onClick={() => printInvoice(booking, payments)}>
-                    🖨️ Print Invoice
+                    <Printer size={15} /> Print Invoice
                   </button>
                   <button className="btn btn-ghost" style={{ fontSize: 12, padding: '6px 14px' }}
                     onClick={async () => {
@@ -168,7 +169,7 @@ export default function BookingDetail() {
                         toast.error(e.message)
                       }
                     }}>
-                    📧 Email Invoice
+                    <Mail size={15} /> Email Invoice
                   </button>
                 </div>
               </div>
@@ -188,13 +189,13 @@ export default function BookingDetail() {
                         <td>{new Date(p.created_at).toLocaleDateString()}</td>
                         <td>{fmt(p.amount)}</td>
                         <td style={{ textTransform: 'capitalize' }}>{p.method}</td>
-                        <td><span className="badge-mini">Success</span></td>
+                        <td><span className="pill pill-green">Success</span></td>
                         <td>
                           <button
                             style={{ background: 'none', border: '1px solid var(--border-glass)', borderRadius: 6, padding: '3px 8px', fontSize: 11, color: 'var(--text-dim)', cursor: 'pointer' }}
                             onClick={() => printReceipt(booking, Number(p.amount), paidSoFar, balAfter)}
                             title="Print receipt for this payment"
-                          >🖨️</button>
+                          ><Printer size={13} /></button>
                         </td>
                       </tr>
                     )
@@ -252,7 +253,7 @@ export default function BookingDetail() {
               </div>
               {!booking?.booking_token && (
                 <p style={{ color: '#ef4444', fontSize: 13, marginTop: 12 }}>
-                  ⚠️ Booking token missing. Please re-save the booking or contact support.
+                  Booking token missing. Please re-save the booking or contact support.
                 </p>
               )}
             </div>
@@ -273,26 +274,26 @@ export default function BookingDetail() {
         .action-delete:hover { background: rgba(239,68,68,0.18); }
 
         .progress-grid { padding: 32px; display: grid; grid-template-columns: repeat(3, 1fr) 2fr; gap: 32px; margin-bottom: 32px; align-items: center; }
-        .stat-pill .label { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px; display: block; }
-        .stat-pill .val { font-size: 24px; font-weight: 800; }
+        .stat-pill .label { font-size: 12.5px; font-weight: 400; color: var(--text-muted); margin-bottom: 6px; display: block; }
+        .stat-pill .val { font-size: 24px; font-weight: 500; }
         
         .progress-section { display: flex; flex-direction: column; gap: 12px; }
         .progress-meta { display: flex; justify-content: space-between; font-size: 13px; font-weight: 700; }
         .progress-track { height: 10px; background: #F1F5F9; border-radius: 5px; overflow: hidden; }
-        .progress-bar { height: 100%; background: linear-gradient(90deg, var(--primary), #8b5cf6); border-radius: 5px; }
+        .progress-bar { height: 100%; background: var(--primary); border-radius: 5px; }
 
         .detail-workspace { display: grid; grid-template-columns: 280px 1fr; gap: 32px; }
         .detail-tabs { padding: 12px; height: fit-content; display: flex; flex-direction: column; gap: 6px; }
-        .detail-tab { padding: 12px 16px; border: none; background: none; color: var(--text-dim); text-align: left; font-size: 14px; font-weight: 600; cursor: pointer; border-radius: 8px; transition: var(--transition); }
+        .detail-tab { display: flex; align-items: center; gap: 10px; padding: 11px 14px; border: none; background: none; color: var(--text-dim); text-align: left; font-size: 13.5px; font-weight: 500; cursor: pointer; border-radius: 8px; transition: var(--transition); }
         .detail-tab:hover { background: #F1F5F9; color: var(--text-bright); }
-        .detail-tab.active { background: var(--primary); color: #fff; }
+        .detail-tab.active { background: var(--primary-light); color: var(--primary-dark); }
 
         .detail-main { padding: 32px; min-height: 400px; }
         .info-group { margin-bottom: 32px; }
-        .info-group h4 { font-size: 14px; font-weight: 800; color: var(--primary); margin-bottom: 20px; text-transform: uppercase; border-bottom: 1px solid var(--border-glass); padding-bottom: 8px; }
+        .info-group h4 { font-size: 14.5px; font-weight: 600; color: var(--text-bright); margin-bottom: 16px; border-bottom: 1px solid var(--border-glass); padding-bottom: 8px; }
         .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        .info-item label { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; display: block; margin-bottom: 4px; }
-        .info-item span { font-size: 15px; font-weight: 600; }
+        .info-item label { font-size: 12px; font-weight: 400; color: var(--text-muted); display: block; margin-bottom: 4px; }
+        .info-item span { font-size: 14px; font-weight: 500; color: var(--text-bright); }
 
         .link-box { display: flex; gap: 12px; margin-top: 20px; }
         .text-success { color: #10b981; }

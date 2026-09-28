@@ -946,3 +946,118 @@ a.icon-action { text-decoration: none; }
 .pager-num:hover { background: #F4F6F9; }
 .pager-num.active { background: var(--primary); color: #fff; }
 .pager-gap { color: var(--text-dim); padding: 0 2px; }
+
+.pick-list { display: flex; flex-direction: column; gap: 6px; max-height: 50vh; overflow-y: auto; }
+.pick-item {
+  display: flex; align-items: center; gap: 12px; width: 100%;
+  padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border-glass);
+  background: #fff; cursor: pointer; text-align: left;
+}
+.pick-item:hover { border-color: #BFE5CF; background: var(--primary-soft); }
+
+.split-2 { display: grid; grid-template-columns: minmax(260px, 340px) minmax(0, 1fr); gap: 16px; align-items: start; }
+@media (max-width: 1100px) { .split-2 { grid-template-columns: minmax(0, 1fr); } }
+.bar-list { list-style: none; display: flex; flex-direction: column; gap: 14px; }
+.bar-list-head { display: flex; justify-content: space-between; font-size: 12.5px; color: var(--text-body); margin-bottom: 6px; }
+.bar-track { height: 8px; border-radius: 999px; background: #F1F4F7; overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 999px; }
+
+.stars { display: inline-flex; gap: 2px; vertical-align: middle; }
+.entity-icon {
+  width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0;
+  background: var(--primary-light); color: var(--primary);
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.entity-icon.blue { background: var(--info-bg); color: var(--info); }
+.entity-icon.orange { background: var(--warning-bg); color: var(--warning); }
+.entity-icon.purple { background: var(--purple-bg); color: var(--purple); }
+
+/* ── Legacy page markup normaliser ─────────────────────────────────────
+   Older pages render `<div class="xyz-header"><h1 class="text-gradient">`
+   with their own heavy inline styles; bring them in line with PageHeader. */
+.page-workspace h1.text-gradient { font-size: 22px !important; font-weight: 600 !important; letter-spacing: -0.01em; margin-bottom: 2px !important; }
+.page-workspace h1.text-gradient + p,
+.page-workspace h2.text-gradient + p { font-size: 13.5px; color: var(--text-muted); }
+.page-workspace [class$="-header"]:has(> div > h1.text-gradient) { align-items: center !important; margin-bottom: 20px !important; }
+.page-workspace [style*="font-weight: 700"],
+.page-workspace [style*="font-weight:700"] { font-weight: 600 !important; }
+.page-workspace .modern-table td { font-weight: 400; }
+.page-workspace .modern-table td > strong,
+.page-workspace .modern-table td[style*="font-weight"] { font-weight: 500 !important; color: var(--text-bright); }
+
+.glass-input.search-input,
+input.search-input {
+  height: 40px;
+  padding: 0 14px 0 38px !important;
+  background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%2394A3B8' stroke-width='2' stroke-linecap='round' viewBox='0 0 24 24'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.3-4.3'/%3E%3C/svg%3E") no-repeat 13px center !important;
+  max-width: 340px;
+  margin-bottom: 14px;
+}
+
+.page-workspace .empty-state { padding: 48px 20px; text-align: center; color: var(--text-muted); }
+.page-workspace .empty-state h2,
+.page-workspace .empty-state h3 { font-size: 15px !important; font-weight: 500 !important; color: var(--text-bright); margin-bottom: 4px; }
+.page-workspace .empty-state-icon {
+  width: 56px; height: 56px; border-radius: 50%; background: #F1F5F9; color: var(--text-muted);
+  display: inline-flex; align-items: center; justify-content: center; margin-bottom: 10px; font-size: 0 !important;
+}
+
+.photo-gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 16px; padding: 16px; }
+.photo-tile { border: 1px solid var(--border-glass); border-radius: 10px; overflow: hidden; background: #fff; transition: box-shadow 0.2s ease; }
+.photo-tile:hover { box-shadow: var(--shadow-pop); }
+.photo-thumb { position: relative; aspect-ratio: 4 / 3; background: #E8EEF3 center / cover no-repeat; }
+.photo-overlay { position: absolute; top: 8px; right: 8px; display: flex; gap: 6px; opacity: 0; transition: opacity 0.15s ease; }
+.photo-tile:hover .photo-overlay { opacity: 1; }
+.photo-type {
+  position: absolute; left: 8px; bottom: 8px;
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 11px; text-transform: capitalize;
+  padding: 3px 8px; border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92); color: var(--primary-dark);
+}
+.photo-type.hotel { color: var(--info); }
+.photo-meta { padding: 10px 12px; }
+@media (hover: none) { .photo-overlay { opacity: 1; } }
+
+/* Form labels across legacy pages: sentence case, like the design */
+.page-workspace .form-field label,
+.page-workspace .settings-form label,
+.page-workspace .field label,
+.modal-content label {
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+  font-size: 12.5px !important;
+  font-weight: 500 !important;
+  color: var(--text-body) !important;
+}
+
+/* ── Itinerary editor inside the main shell ───────────────────────────── */
+.editor-page .editor-canvas { margin: 0; padding: 0; min-height: auto; }
+.editor-page .editor-top-bar {
+  position: sticky;
+  top: calc(var(--header-h) + 12px);
+  left: auto;
+  right: auto;
+  z-index: 50;
+  height: 64px;
+  margin-bottom: 16px;
+  padding: 0 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.editor-page .top-bar-left { gap: 14px; min-width: 0; }
+.editor-page .pkg-info { min-width: 0; }
+.editor-page .pkg-info h3 { font-size: 16px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.editor-page .save-status { font-size: 11.5px; font-weight: 500; color: var(--primary); }
+.editor-page .top-bar-actions .btn { gap: 6px; }
+.editor-page .sidebar-tab { display: flex; flex-direction: column; align-items: center; gap: 4px; font-weight: 500; }
+.editor-page .sidebar-tab .icon { display: inline-flex; }
+
+@media print {
+  .sidebar-nav, .sidebar-overlay, .main-header, .bottom-nav { display: none !important; }
+  .main-viewport { margin: 0 !important; padding: 0 !important; }
+  .page-workspace { padding: 0 !important; }
+  .editor-page .editor-canvas { display: none !important; }
+}
