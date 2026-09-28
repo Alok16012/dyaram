@@ -36,6 +36,8 @@ const UserManagement = lazy(() => import('./pages/UserManagement'))
 const WebsiteContent = lazy(() => import('./pages/WebsiteContent'))
 const WebsitePackages = lazy(() => import('./pages/WebsitePackages'))
 const NewsletterSubscribers = lazy(() => import('./pages/NewsletterSubscribers'))
+const Customers = lazy(() => import('./pages/Customers'))
+const Payments  = lazy(() => import('./pages/Payments'))
 
 // Auth & Public
 const Login       = lazy(() => import('./pages/Login'))
@@ -49,7 +51,13 @@ function PageFallback() {
 }
 
 // Styles
+import '@fontsource/poppins/latin-300.css'
+import '@fontsource/poppins/latin-400.css'
+import '@fontsource/poppins/latin-500.css'
+import '@fontsource/poppins/latin-600.css'
+import '@fontsource/poppins/latin-700.css'
 import './styles/index.css'
+import './styles/theme.css'
 
 const ProtectedRoute = ({ children, module }) => {
   const isAuth = localStorage.getItem('shara_auth') === 'true'
@@ -95,6 +103,8 @@ export default function App() {
               <Route path="/leads" element={<ProtectedRoute module="leads"><Leads /></ProtectedRoute>} />
               <Route path="/bookings" element={<ProtectedRoute module="bookings"><Bookings /></ProtectedRoute>} />
               <Route path="/bookings/:id" element={<ProtectedRoute module="bookings"><BookingDetail /></ProtectedRoute>} />
+              <Route path="/customers" element={<ProtectedRoute module="leads"><Customers /></ProtectedRoute>} />
+              <Route path="/payments" element={<ProtectedRoute module="bookings"><Payments /></ProtectedRoute>} />
 
               {/* ── Operations / Resources / Admin ── */}
               <Route path="/invoices" element={<ProtectedRoute module="invoices"><Invoices /></ProtectedRoute>} />
@@ -117,7 +127,7 @@ export default function App() {
                   background: '#1a1a1a',
                   color: '#fff',
                   fontSize: '13px',
-                  fontFamily: 'Inter, sans-serif',
+                  fontFamily: 'Poppins, sans-serif',
                 },
                 success: { iconTheme: { primary: '#10b981', secondary: '#fff' } },
                 error:   { iconTheme: { primary: '#ef4444', secondary: '#fff' } },

@@ -6,7 +6,7 @@
 // always populated.
 
 const DEMO_SEED_KEY = 'demo_seed_version'
-const DEMO_SEED_VERSION = '1'
+const DEMO_SEED_VERSION = '3'
 
 // Login: admin / admin123 (full access), sales / demo123 (limited access)
 const ADMIN_HASH = '$2b$10$LIni/cQRHOqDOWnbW7lsC.gFwy/u98bAVRCYsz9Fa9Q02gp8mUCVe'
@@ -190,8 +190,78 @@ function buildDemoData() {
     }
   })
 
+  // ── Extra generated volume ──
+  // Deterministic pseudo-random so every browser sees the same demo.
+  let seed = 42
+  const rnd = () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646 }
+  const pick = (arr) => arr[Math.floor(rnd() * arr.length)]
+  const FIRST = ['Aarav', 'Ishita', 'Kabir', 'Ananya', 'Vivaan', 'Saanvi', 'Reyansh', 'Diya', 'Arnav', 'Myra', 'Yash', 'Tanvi', 'Nikhil', 'Riya', 'Manish', 'Shreya', 'Gaurav', 'Nisha', 'Varun', 'Aisha', 'Kunal', 'Sneha', 'Rakesh', 'Payal', 'Deepak', 'Jyoti', 'Mohit', 'Simran', 'Tarun', 'Zoya']
+  const LAST = ['Sharma', 'Verma', 'Patel', 'Iyer', 'Khan', 'Gupta', 'Singh', 'Reddy', 'Bose', 'Mishra', 'Chopra', 'Pillai', 'Agarwal', 'Nair', 'Saxena']
+  const TRIPS = [
+    ['Kashmir', 'pkg-1', 5], ['Srinagar & Gulmarg', 'pkg-2', 3], ['Leh Ladakh', 'pkg-3', 6],
+    ['Kashmir Honeymoon', 'pkg-4', 4], ['Pahalgam', 'pkg-1', 5], ['Gulmarg', 'pkg-2', 3],
+    ['Sonamarg', 'pkg-1', 4], ['Kashmir', 'pkg-1', 5], ['Leh Ladakh', 'pkg-3', 6],
+  ]
+  const SOURCES = ['Website', 'WhatsApp', 'Referral', 'Social Media', 'Phone Call', 'JustDial', 'Walk-in']
+  const STAGES = ['new_inquiry', 'new_inquiry', 'contacted', 'contacted', 'itinerary_sent', 'negotiation', 'advance_paid', 'completed', 'lost']
+  const STATUS = ['confirmed', 'advance_paid', 'advance_paid', 'balance_due', 'fully_paid', 'fully_paid', 'completed', 'cancelled']
+
+  for (let i = 0; i < 46; i++) {
+    // Every 6th generated lead is a returning customer from the original list.
+    const returning = i % 6 === 5 ? leads[(i * 3) % 16] : null
+    const name = returning ? returning.name : `${pick(FIRST)} ${pick(LAST)}`
+    const [destination, package_id, nights] = pick(TRIPS)
+    // Skew toward recent days so "last 7 / 30 days" views are lively.
+    const age = Math.round(Math.pow(rnd(), 1.8) * 170)
+    const u = owner(i + 1)
+    const phone = returning ? returning.phone : `+91 9${String(Math.floor(100000000 + rnd() * 899999999))}`
+    const travelIn = Math.round(rnd() * 90) - 20
+    const lead = {
+      id: `lead-g${i + 1}`, name, phone, whatsapp: phone,
+      email: `${name.toLowerCase().replace(/[^a-z]+/g, '.')}${i}@example.com`,
+      destination, travel_date: dateIn(travelIn), return_date: dateIn(travelIn + nights),
+      adults: 1 + Math.floor(rnd() * 4), children: Math.floor(rnd() * 2.4), infants: 0,
+      budget_min: 25000 + Math.round(rnd() * 40) * 1000, budget_max: null,
+      stage: pick(STAGES), source: pick(SOURCES), package_id,
+      assigned_to: u.id, assigned_name: u.full_name, notes: '',
+      created_at: ago(age + rnd()), updated_at: ago(Math.max(0, age - 1)),
+    }
+    lead.budget_max = lead.budget_min + 15000
+    leads.push(lead)
+
+    if (i % 4 === 3 && !returning) continue // not every lead converts
+    const bIdx = bookings.length
+    const id = `bk-g${i + 1}`
+    const pax = lead.adults + lead.children
+    const total = Math.round((nights * 5200 + 6000) * pax / 500) * 500
+    const status = pick(STATUS)
+    const advance = Math.round(total * 0.2)
+    const paid = status === 'confirmed' || status === 'cancelled' ? 0
+      : ['fully_paid', 'completed'].includes(status) ? total
+      : status === 'balance_due' ? Math.round(total * 0.5) : advance
+    const created = Math.max(0, Math.round(age * 0.8))
+    bookings.push({
+      id, booking_ref: `ST-2026-${String(bIdx + 1).padStart(4, '0')}`, lead_id: lead.id, package_id,
+      customer_name: name, customer_email: lead.email, customer_phone: phone, customer_whatsapp: phone,
+      destination, travel_date: lead.travel_date, return_date: lead.return_date,
+      adults: lead.adults, children: lead.children, infants: 0, nights,
+      total_amount: total, advance_percent: 20, advance_amount: advance,
+      balance_amount: total - paid, paid_amount: paid, status,
+      booking_token: `demo-token-g${i + 1}`, notes: '',
+      created_at: ago(created + rnd() * 0.9), updated_at: ago(Math.max(0, created - 1)),
+    })
+    if (paid > 0) {
+      const first = Math.min(paid, advance)
+      payments.push({ id: `pay-g${i + 1}-a`, booking_id: id, amount: first, type: 'advance', method: pick(['razorpay', 'upi', 'bank_transfer']), status: 'success', notes: '', paid_at: ago(created), created_at: ago(created) })
+      if (paid > first) {
+        const d = Math.max(0, created - 3 - Math.floor(rnd() * 10))
+        payments.push({ id: `pay-g${i + 1}-b`, booking_id: id, amount: paid - first, type: 'balance', method: pick(['upi', 'bank_transfer', 'cash']), status: 'success', notes: '', paid_at: ago(d), created_at: ago(d) })
+      }
+    }
+  }
+
   // ── Invoices ──
-  const invoices = bookings.slice(0, 5).map((b, i) => {
+  const invoices = bookings.filter(b => b.status !== 'cancelled').slice(0, 14).map((b, i) => {
     const rate = Math.round(b.total_amount / 1.05)
     const tax = b.total_amount - rate
     return {
@@ -200,8 +270,8 @@ function buildDemoData() {
       client_gstin: '', client_state_code: '07', booking_id: b.id,
       items: [{ id: `it-${i}`, description: `${b.nights}N/${b.nights + 1}D ${b.destination} Tour Package`, hsn: '998552', qty: 1, rate, discount: '', cgst: 2.5, sgst: 2.5, igst: '' }],
       subtotal: rate, tax_amount: tax, amount: b.total_amount,
-      status: b.balance_amount === 0 ? 'paid' : i === 2 ? 'overdue' : 'unpaid',
-      issue_date: b.created_at.slice(0, 10), due_date: dateIn(7 - i * 5), notes: 'Thank you for travelling with us!',
+      status: b.balance_amount === 0 ? 'paid' : i % 5 === 2 ? 'overdue' : 'unpaid',
+      issue_date: b.created_at.slice(0, 10), due_date: dateIn(10 - i * 3), notes: 'Thank you for travelling with us!',
       created_at: b.created_at,
     }
   })

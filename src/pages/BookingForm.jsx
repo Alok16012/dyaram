@@ -299,17 +299,17 @@ export default function BookingForm() {
 }
 
 // ── Styles ─────────────────────────────────────────────────
-const pageStyle   = { minHeight: '100vh', background: '#F1F5F9', fontFamily: 'Inter,sans-serif', paddingBottom: 40 }
-const headerStyle = { background: 'linear-gradient(135deg,#4F6EF7,#6366F1)', color: '#fff', padding: '20px 24px', marginBottom: 24, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }
+const pageStyle   = { minHeight: '100vh', background: '#F1F5F9', fontFamily: 'Poppins,sans-serif', paddingBottom: 40 }
+const headerStyle = { background: '#12A15A', color: '#fff', padding: '20px 24px', marginBottom: 24, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }
 const cardStyle   = { background: '#fff', borderRadius: 16, border: '1px solid #E2E8F0', padding: 24, boxShadow: '0 1px 3px rgba(15,23,42,0.06)' }
 const rowStyle    = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, fontSize: 13 }
 const labelStyle  = { color: '#64748B', fontWeight: 600 }
 const valStyle    = { fontWeight: 700, color: '#0F172A', textAlign: 'right', maxWidth: '60%' }
 const fieldStyle  = { display: 'flex', flexDirection: 'column', gap: 6 }
 const labelStyleForm = { fontSize: 11, fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.5px' }
-const inputStyle  = { border: '1.5px solid #E2E8F0', borderRadius: 10, padding: '10px 14px', fontSize: 14, fontFamily: 'Inter,sans-serif', color: '#0F172A', outline: 'none', width: '100%', boxSizing: 'border-box' }
+const inputStyle  = { border: '1.5px solid #E2E8F0', borderRadius: 10, padding: '10px 14px', fontSize: 14, fontFamily: 'Poppins,sans-serif', color: '#0F172A', outline: 'none', width: '100%', boxSizing: 'border-box' }
 const gridStyle   = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }
 const spinnerStyle = { width: 36, height: 36, border: '3px solid #E2E8F0', borderTopColor: '#4F6EF7', borderRadius: '50%', animation: 'spin 0.7s linear infinite', margin: '0 auto', display: 'block' }
-const payBtnStyle = { background: 'linear-gradient(135deg,#4F6EF7,#6366F1)', color: '#fff', border: 'none', borderRadius: 12, padding: '14px 20px', fontSize: 15, fontWeight: 800, cursor: 'pointer', fontFamily: 'Inter,sans-serif', boxShadow: '0 4px 14px rgba(79,110,247,0.3)', width: '100%', transition: 'all 0.18s' }
-const ghostBtnStyle = { background: 'transparent', color: '#64748B', border: '1.5px solid #E2E8F0', borderRadius: 12, padding: '12px 20px', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'Inter,sans-serif', width: '100%' }
+const payBtnStyle = { background: '#12A15A', color: '#fff', border: 'none', borderRadius: 12, padding: '14px 20px', fontSize: 15, fontWeight: 800, cursor: 'pointer', fontFamily: 'Poppins,sans-serif', boxShadow: '0 4px 14px rgba(18,161,90,0.25)', width: '100%', transition: 'all 0.18s' }
+const ghostBtnStyle = { background: 'transparent', color: '#64748B', border: '1.5px solid #E2E8F0', borderRadius: 12, padding: '12px 20px', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'Poppins,sans-serif', width: '100%' }
 const formSectionStyle = { fontSize: 11, fontWeight: 800, color: '#4F6EF7', textTransform: 'uppercase', letterSpacing: '0.8px', paddingBottom: 8, borderBottom: '1px solid #E2E8F0' }
