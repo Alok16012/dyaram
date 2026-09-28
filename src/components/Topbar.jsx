@@ -1,6 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { usePackage } from '../context/PackageContext'
-import { isConfigured } from '../lib/supabase'
+import { isLive } from '../lib/supabase'
 
 export default function Topbar({ mode = 'home', packageTitle = '', onPreview, onPrint }) {
   const { saveStatus, createNewPackage } = usePackage()
@@ -28,10 +28,10 @@ export default function Topbar({ mode = 'home', packageTitle = '', onPreview, on
 
       <div className="topbar-actions">
         {/* Connection status badge — visible on all modes */}
-        <div className={`topbar-conn ${isConfigured ? 'topbar-conn-ok' : 'topbar-conn-off'}`}>
+        <div className={`topbar-conn ${isLive ? 'topbar-conn-ok' : 'topbar-conn-off'}`}>
           <span className="topbar-conn-dot" />
           <span className="topbar-conn-label">
-            {isConfigured ? 'Cloud' : 'Local'}
+            {isLive ? 'Cloud' : 'Demo'}
           </span>
         </div>
 

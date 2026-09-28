@@ -1,16 +1,38 @@
-# React + Vite
+# Travel CRM
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Travel agency CRM + itinerary maker (React + Vite).
 
-Currently, two official plugins are available:
+## Run
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+```bash
+npm install
+npm run dev
+```
 
-## React Compiler
+## Demo mode
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Without Supabase credentials the app runs in **demo mode**: all data lives in
+the browser's localStorage and is pre-seeded with sample leads, bookings,
+itineraries, invoices, hotels, cabs, income, expenses and more
+(`src/lib/demoData.js`).
 
-## Expanding the ESLint configuration
+Demo logins:
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+| User  | Password | Access |
+|-------|----------|--------|
+| admin | admin123 | Full admin |
+| sales | demo123  | Leads, Bookings, Itinerary, Invoices |
+| aman  | demo123  | Bookings, Hotels, Cabs, Photos, Expenses |
+
+Settings → **Reset Demo Data** restores the original sample data.
+
+## Going live (Supabase)
+
+1. Run `supabase-schema.sql` in the Supabase SQL editor.
+2. Create a `.env` file:
+
+```
+VITE_SUPABASE_URL=https://xxxx.supabase.co
+VITE_SUPABASE_ANON_KEY=...
+VITE_RAZORPAY_KEY_ID=...
+```

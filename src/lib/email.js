@@ -2,9 +2,13 @@
 // All email sending goes through /api/send-email (server-side)
 // Credentials are secure in Vercel env vars — never exposed to browser
 
+import { isDemo } from './supabase'
+
 export const isEmailConfigured = true // always available via server API
 
 async function callEmailAPI(payload) {
+  // Demo mode has no backend — pretend the email went out.
+  if (isDemo) return { skipped: true }
   const res = await fetch('/api/send-email', {
     method:  'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -324,7 +328,8 @@ export async function sendNewBookingEmail(booking) {
 
 export async function sendItineraryEmail(booking, pkg, days = [], prices = []) {
   if (!booking.customer_email) throw new Error('Customer email nahi hai.')
-  return sendEmail({
+  return callEmailAPI({
+    type:    'itinerary',
     to:      booking.customer_email,
     subject: `Your Personalised Itinerary — ${booking.destination || 'Kashmir'} | Shera Travels`,
     html:    itineraryHTML(booking, pkg, days, prices),

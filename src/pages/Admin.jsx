@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { createClient } from '@supabase/supabase-js'
 import toast from 'react-hot-toast'
-import { saveCredentials, clearCredentials, getStoredCredentials, isConfigured } from '../lib/supabase'
+import { saveCredentials, clearCredentials, getStoredCredentials, isLive, isDemo } from '../lib/supabase'
+import { resetDemoData } from '../lib/demoData'
 import { isAdmin } from '../lib/auth'
 
 const DEFAULT_COMPANY = {
@@ -23,7 +24,7 @@ export default function Admin() {
   const [sbUrl, setSbUrl] = useState('')
   const [sbKey, setSbKey] = useState('')
   const [testing, setTesting] = useState(false)
-  const [connected, setConnected] = useState(isConfigured)
+  const [connected, setConnected] = useState(isLive)
 
   const [company, setCompany] = useState(DEFAULT_COMPANY)
   const [templates, setTemplates] = useState(DEFAULT_PRICE_TEMPLATES)
@@ -103,6 +104,35 @@ export default function Admin() {
               </p>
               <div className="form-actions">
                 <Link to="/users" className="btn btn-primary">Manage Users</Link>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {isDemo && (
+          <section className="glass-card settings-card">
+            <div className="settings-head">
+              <div className="settings-icon">🧪</div>
+              <div>
+                <h3>Demo Mode</h3>
+                <p className="text-dim">Running on sample data stored in this browser.</p>
+              </div>
+            </div>
+            <div className="settings-form">
+              <p className="text-dim" style={{ fontSize: 13 }}>
+                All changes are saved only in this browser. Reset to restore the original sample leads, bookings, invoices and more.
+              </p>
+              <div className="form-actions">
+                <button
+                  className="btn btn-ghost"
+                  onClick={() => {
+                    if (!window.confirm('Reset all demo data? Your changes will be lost.')) return
+                    resetDemoData()
+                    window.location.reload()
+                  }}
+                >
+                  Reset Demo Data
+                </button>
               </div>
             </div>
           </section>

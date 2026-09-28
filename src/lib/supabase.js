@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import toast from 'react-hot-toast'
+import { seedDemoData } from './demoData'
 
 // Read from localStorage first (set via Admin page), fall back to env vars
 const storedUrl = localStorage.getItem('sb_url')
@@ -8,8 +9,9 @@ const storedKey = localStorage.getItem('sb_key')
 const supabaseUrl = (storedUrl && storedUrl.startsWith('https://')) ? storedUrl : import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = (storedKey && storedKey.length > 20) ? storedKey : import.meta.env.VITE_SUPABASE_ANON_KEY
 
-// Check if credentials are configured
-const isConfigured = !!(
+
+// Check if real Supabase credentials are configured
+const isLive = !!(
   supabaseUrl && 
   supabaseUrl.startsWith('https://') && 
   !supabaseUrl.includes('your_supabase_project_url_here') &&
@@ -18,93 +20,162 @@ const isConfigured = !!(
   !supabaseAnonKey.includes('your_supabase_anon_key_here')
 )
 
-// Create client only if configured; otherwise use a mock
-let supabase
+// Tables the mock client knows about. Each is persisted to localStorage
+// under `mock_<table>`.
+const MOCK_TABLES = [
+  'packages', 'prices', 'days', 'day_photos', 'photo_library',
+  'leads', 'lead_notes', 'bookings', 'payments', 'invoices',
+  'hotels', 'cabs', 'income', 'expenses', 'audit_logs',
+  'app_users', 'site_content',
+]
 
-if (isConfigured) {
-  supabase = createClient(supabaseUrl, supabaseAnonKey)
-} else {
-  console.warn('⚠️ Supabase credentials not configured. Using localStorage fallback.')
-  supabase = createMockClient()
+// Embedded relations understood by `select('*, rel(...)')`.
+// child: rows in `table` whose `fk` equals the parent's id.
+// parent: the single row in `table` whose id equals the row's `fk`.
+const RELATIONS = {
+  days:     { day_photos: { kind: 'child',  table: 'day_photos', fk: 'day_id' } },
+  bookings: { packages:   { kind: 'parent', table: 'packages',   fk: 'package_id' } },
 }
 
+// Primary key per table (defaults to `id`).
+const PKEYS = { site_content: 'key' }
+
 function createMockClient() {
-  const store = {
-    packages:     JSON.parse(localStorage.getItem('mock_packages')     || '[]'),
-    prices:       JSON.parse(localStorage.getItem('mock_prices')       || '[]'),
-    days:         JSON.parse(localStorage.getItem('mock_days')         || '[]'),
-    day_photos:   JSON.parse(localStorage.getItem('mock_day_photos')   || '[]'),
-    photo_library:JSON.parse(localStorage.getItem('mock_photo_library')|| '[]'),
-    leads:        JSON.parse(localStorage.getItem('crm_leads')         || '[]'),
-    lead_notes:   JSON.parse(localStorage.getItem('crm_notes')         || '[]'),
-    bookings:     JSON.parse(localStorage.getItem('crm_bookings')      || '[]'),
-    payments:     JSON.parse(localStorage.getItem('crm_payments')      || '[]'),
-    app_users:    JSON.parse(localStorage.getItem('mock_app_users')    || '[]'),
+  const load = (table) => {
+    try { return JSON.parse(localStorage.getItem(`mock_${table}`) || '[]') } catch { return [] }
   }
+  const store = Object.fromEntries(MOCK_TABLES.map(t => [t, load(t)]))
 
   const persist = (table) => {
-    const key = ['leads','lead_notes','bookings','payments'].includes(table)
-      ? `crm_${table === 'lead_notes' ? 'notes' : table}`
-      : `mock_${table}`
     try {
-      localStorage.setItem(key, JSON.stringify(store[table]))
+      localStorage.setItem(`mock_${table}`, JSON.stringify(store[table] || []))
       return null
-    } catch (e) {
+    } catch {
       return { message: 'Storage full. Try uploading smaller images.' }
     }
   }
 
+  const withDefaults = (table, d) => {
+    const now = new Date().toISOString()
+    const row = { ...d }
+    if (!PKEYS[table] && !row.id) row.id = crypto.randomUUID()
+    if (table !== 'site_content' && !row.created_at) row.created_at = now
+    if (table === 'bookings' && !row.booking_token) row.booking_token = crypto.randomUUID()
+    return row
+  }
+
+  const embed = (table, rows, selectStr) => {
+    const rels = RELATIONS[table]
+    if (!rels || !selectStr) return rows
+    return rows.map(r => {
+      const out = { ...r }
+      for (const [name, rel] of Object.entries(rels)) {
+        if (!new RegExp(`\\b${name}\\s*\\(`).test(selectStr)) continue
+        const target = store[rel.table] || []
+        out[name] = rel.kind === 'child'
+          ? target.filter(x => x[rel.fk] === r.id)
+          : target.find(x => x.id === r[rel.fk]) || null
+      }
+      return out
+    })
+  }
+
+  const compare = (a, b) => {
+    if (a == null && b == null) return 0
+    if (a == null) return 1
+    if (b == null) return -1
+    if (typeof a === 'number' && typeof b === 'number') return a - b
+    return String(a).localeCompare(String(b))
+  }
+
   const makeBuilder = (table) => {
-    let _filters = []
-    let _order = null
-    let _single = false
-    let _op = 'select'
-    let _data = null
+    const filters = []
+    let order = null
+    let limitN = null
+    let single = false
+    let maybe = false
+    let op = 'select'
+    let data = null
+    let selectStr = '*'
+    let countMode = false
+    let head = false
+    let upsertKey = null
+
+    const matches = (r) => filters.every(f => f(r))
 
     const execute = () => {
-      let rows = store[table] ? [...store[table]] : []
-      if (_filters.length) {
-        rows = rows.filter(r => _filters.every(f => String(r[f.col]) === String(f.val)))
-      }
-      if (_order) rows = rows.sort((a, b) => String(a[_order.col]).localeCompare(String(b[_order.col])))
+      if (!store[table]) store[table] = []
+      const pk = PKEYS[table] || 'id'
 
-      if (_op === 'select') {
-        return _single ? { data: rows[0] || null, error: null } : { data: rows, error: null }
+      if (op === 'insert' || op === 'upsert') {
+        const saved = []
+        for (const d of data) {
+          const key = op === 'upsert' ? (upsertKey || pk) : null
+          const idx = key ? store[table].findIndex(r => r[key] === d[key]) : -1
+          if (idx >= 0) {
+            store[table][idx] = { ...store[table][idx], ...d }
+            saved.push(store[table][idx])
+          } else {
+            const row = withDefaults(table, d)
+            store[table].push(row)
+            saved.push(row)
+          }
+        }
+        const err = persist(table)
+        if (err) return { data: null, error: err }
+        return single || maybe ? { data: saved[0] || null, error: null } : { data: saved, error: null }
       }
-      if (_op === 'insert') {
-        const added = _data.map(d => ({ ...d, id: d.id || crypto.randomUUID(), created_at: new Date().toISOString() }))
-        store[table] = [...(store[table] || []), ...added]
-        const persistErr = persist(table)
-        if (persistErr) return { data: null, error: persistErr }
-        return _single ? { data: added[0], error: null } : { data: added, error: null }
+
+      if (op === 'update') {
+        store[table] = store[table].map(r => matches(r) ? { ...r, ...data } : r)
+        const err = persist(table)
+        if (err) return { data: null, error: err }
+        const updated = store[table].filter(matches)
+        return single || maybe ? { data: updated[0] || null, error: null } : { data: updated, error: null }
       }
-      if (_op === 'update') {
-        store[table] = (store[table] || []).map(r =>
-          _filters.every(f => String(r[f.col]) === String(f.val)) ? { ...r, ..._data } : r
-        )
-        persist(table)
-        const updated = (store[table] || []).filter(r => _filters.every(f => String(r[f.col]) === String(f.val)))
-        return _single ? { data: updated[0] || null, error: null } : { data: updated, error: null }
-      }
-      if (_op === 'delete') {
-        store[table] = (store[table] || []).filter(r => !_filters.every(f => String(r[f.col]) === String(f.val)))
+
+      if (op === 'delete') {
+        store[table] = store[table].filter(r => !matches(r))
         persist(table)
         return { data: null, error: null }
       }
-      return { data: null, error: null }
+
+      let rows = store[table].filter(matches)
+      if (order) {
+        const dir = order.ascending === false ? -1 : 1
+        rows = [...rows].sort((a, b) => dir * compare(a[order.col], b[order.col]))
+      }
+      if (limitN != null) rows = rows.slice(0, limitN)
+      const count = countMode ? rows.length : null
+      if (head) return { data: null, count, error: null }
+      rows = embed(table, rows, selectStr)
+      if (single && !rows.length) return { data: null, count, error: { message: 'Row not found', code: 'PGRST116' } }
+      if (single || maybe) return { data: rows[0] || null, count, error: null }
+      return { data: rows, count, error: null }
     }
 
     const builder = {
-      select: () => builder,
-      insert: (rows) => { _op = 'insert'; _data = Array.isArray(rows) ? rows : [rows]; return builder },
-      update: (data) => { _op = 'update'; _data = data; return builder },
-      delete: () => { _op = 'delete'; return builder },
-      eq:     (col, val) => { _filters.push({ col, val }); return builder },
-      order:  (col, opts) => { _order = { col, opts }; return builder },
-      limit:  () => builder,
-      single: () => { _single = true; return builder },
-      then: (resolve, reject) => Promise.resolve(execute()).then(resolve, reject),
-      catch: (reject) => Promise.resolve(execute()).catch(reject),
+      select: (cols, opts) => {
+        if (typeof cols === 'string') selectStr = cols
+        if (opts?.count) countMode = true
+        if (opts?.head) head = true
+        return builder
+      },
+      insert: (rows) => { op = 'insert'; data = Array.isArray(rows) ? rows : [rows]; return builder },
+      upsert: (rows, opts) => { op = 'upsert'; data = Array.isArray(rows) ? rows : [rows]; upsertKey = opts?.onConflict || null; return builder },
+      update: (d) => { op = 'update'; data = d; return builder },
+      delete: () => { op = 'delete'; return builder },
+      eq:     (col, val) => { filters.push(r => String(r[col]) === String(val)); return builder },
+      neq:    (col, val) => { filters.push(r => String(r[col]) !== String(val)); return builder },
+      in:     (col, vals) => { filters.push(r => vals.map(String).includes(String(r[col]))); return builder },
+      gte:    (col, val) => { filters.push(r => r[col] >= val); return builder },
+      lte:    (col, val) => { filters.push(r => r[col] <= val); return builder },
+      order:  (col, opts = {}) => { order = { col, ascending: opts.ascending !== false }; return builder },
+      limit:  (n) => { limitN = n; return builder },
+      single: () => { single = true; return builder },
+      maybeSingle: () => { maybe = true; return builder },
+      then: (resolve, reject) => Promise.resolve().then(execute).then(resolve, reject),
+      catch: (reject) => Promise.resolve().then(execute).catch(reject),
     }
     return builder
   }
@@ -121,7 +192,27 @@ function createMockClient() {
   }
 }
 
-export { supabase, isConfigured }
+// Create client only if configured; otherwise run in demo mode on a
+// localStorage-backed mock client, pre-seeded with sample data.
+let supabase
+
+if (isLive) {
+  supabase = createClient(supabaseUrl, supabaseAnonKey)
+} else {
+  console.warn('⚠️ Supabase credentials not configured. Running in demo mode (localStorage).')
+  seedDemoData()
+  supabase = createMockClient()
+}
+
+// Demo mode: no Supabase credentials, data lives in localStorage and is
+// pre-seeded with sample records so the whole CRM can be shown to a client.
+const isDemo = !isLive
+
+// `isConfigured` means "the data layer can read & write" — true in both
+// live and demo mode, so every screen stays fully usable in the demo.
+const isConfigured = true
+
+export { supabase, isConfigured, isLive, isDemo }
 
 // ── Credential helpers (used by Admin page) ────────────────────────────────
 export function saveCredentials(url, key) {
@@ -216,7 +307,7 @@ function warnStorageFallback(reason) {
 
 // ── Helper: Upload image file to Supabase Storage and return public URL ────
 export async function uploadPhoto(file, folder = 'library') {
-  if (!isConfigured) {
+  if (!isLive) {
     return compressImage(file)
   }
   const resized = await resizeImage(file)
@@ -244,7 +335,7 @@ export async function uploadPhoto(file, folder = 'library') {
 
 // ── Helper: Delete photo from storage ─────────────────────────────────────
 export async function deletePhoto(url) {
-  if (!isConfigured) return
+  if (!isLive) return
   try {
     const path = url.split('/itinerary-photos/')[1]
     if (path) await supabase.storage.from('itinerary-photos').remove([path])

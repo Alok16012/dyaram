@@ -2,7 +2,7 @@ import { useState } from 'react'
 import toast from 'react-hot-toast'
 import bcrypt from 'bcryptjs'
 import loginBg from '../assets/login-bg.png'
-import { supabase } from '../lib/supabase'
+import { supabase, isDemo } from '../lib/supabase'
 import { setSession } from '../lib/auth'
 
 export default function Login() {
@@ -108,12 +108,35 @@ export default function Login() {
           </button>
         </form>
         
+        {isDemo && (
+          <div className="login-demo-hint">
+            <strong>Demo login</strong>
+            <span>Admin: <code>admin</code> / <code>admin123</code></span>
+            <span>Sales: <code>sales</code> / <code>demo123</code></span>
+          </div>
+        )}
+
         <div className="login-footer">
           <p>© 2026 Shera Travels. All rights reserved.</p>
         </div>
       </div>
 
       <style jsx>{`
+        .login-demo-hint {
+          margin-top: 18px;
+          padding: 12px 14px;
+          border-radius: 10px;
+          background: rgba(79, 110, 247, 0.12);
+          border: 1px solid rgba(79, 110, 247, 0.3);
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+          font-size: 12.5px;
+          text-align: left;
+        }
+        .login-demo-hint code {
+          font-weight: 700;
+        }
         .login-container {
           height: 100vh;
           width: 100vw;
