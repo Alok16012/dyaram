@@ -17,6 +17,8 @@ import { getSession } from '../lib/auth'
 import { StatCard, Card, Pill, Avatar, EmptyState } from '../components/ui'
 import { BOOKING_TONE, LEAD_TONE, inr, inrShort, fmtDate, timeAgo } from '../lib/ui'
 import './Home.css'
+import { BRAND } from '../lib/brand'
+import { destinationTile } from '../lib/artTiles'
 
 const DAY = 864e5
 
@@ -27,16 +29,7 @@ const RANGES = [
   { id: '12m', label: 'Last 12 Months', days: 365, bucket: 'month' },
 ]
 
-const DEST_IMAGES = [
-  [/ladakh|leh|nubra|pangong/i, 'photo-1455156218388-5e61b526818b'],
-  [/honeymoon|houseboat|dal/i, 'photo-1589182373726-e4f658ab50f0'],
-  [/gulmarg/i, 'photo-1506905925346-21bda4d32df4'],
-  [/pahalgam/i, 'photo-1464822759023-fed622ff2c3b'],
-  [/sonamarg/i, 'photo-1551632811-561732d1e306'],
-  [/.*/, 'photo-1605649461784-eec84f8e5f0f'],
-]
-const destImage = (name) =>
-  `https://images.unsplash.com/${DEST_IMAGES.find(([re]) => re.test(name))[1]}?w=400&q=70`
+const destImage = (name) => destinationTile(name)
 
 const startOfDay = (d) => { const x = new Date(d); x.setHours(0, 0, 0, 0); return x }
 
@@ -55,19 +48,19 @@ function SendQuoteModal({ packages, onClose }) {
     if (!pkg) return
     const incLines = (pkg.inclusions || []).slice(0, 6).map(i => `  ✅ ${i}`).join('\n')
     const msg =
-`✈️ *${pkg.title || 'Kashmir Tour Package'}*
+`🕋 *${pkg.title || 'Umrah Package'}*
 
-📍 ${pkg.start_location || 'Kashmir, India'}
+📍 ${pkg.start_location || 'Makkah & Madinah'}
 🌙 ${pkg.nights || '—'} Nights / ${pkg.days || '—'} Days
 
 ${incLines ? `📋 *What's Included*\n${incLines}\n` : ''}
 💬 For pricing & availability, reply to this message or call us directly.
 
-📞 *Shera Travels*
-+91 9149406965 | +91 9858966518
-sheratravels21@gmail.com
+📞 *${BRAND.legalName}*
+${BRAND.phone}
+${BRAND.email}
 
-_Let's plan your dream trip to Kashmir!_ 🏔️`
+_May Allah accept your Umrah. We're here to make your journey easy._`
     const digits = phone.replace(/\D/g, '')
     const num = digits.length === 10 ? `91${digits}` : digits
     window.open(`https://wa.me/${num}?text=${encodeURIComponent(msg)}`, '_blank')
@@ -88,7 +81,7 @@ _Let's plan your dream trip to Kashmir!_ 🏔️`
           </select>
           {pkg && (
             <div className="quote-preview">
-              <div>{pkg.start_location || 'Kashmir'} · {pkg.nights}N/{pkg.days}D</div>
+              <div>{pkg.start_location || 'Makkah & Madinah'} · {pkg.nights}N/{pkg.days}D</div>
               {(pkg.inclusions || []).slice(0, 3).map((inc, i) => <div key={i}>✓ {inc}</div>)}
             </div>
           )}
@@ -208,10 +201,10 @@ export default function Home() {
 
   const statusData = useMemo(() => {
     const groups = [
-      { name: 'Confirmed', color: '#12A15A', ids: ['confirmed', 'fully_paid'] },
+      { name: 'Confirmed', color: '#0D2A7D', ids: ['confirmed', 'fully_paid'] },
       { name: 'Pending', color: '#F5A623', ids: ['advance_paid', 'balance_due', 'draft'] },
-      { name: 'Completed', color: '#3B6FF6', ids: ['completed'] },
-      { name: 'Cancelled', color: '#E5484D', ids: ['cancelled'] },
+      { name: 'Completed', color: '#12A15A', ids: ['completed'] },
+      { name: 'Cancelled', color: '#D90A0A', ids: ['cancelled'] },
     ]
     const total = bookings.length || 1
     return groups.map(g => {
@@ -241,7 +234,7 @@ export default function Home() {
   const destinations = useMemo(() => {
     const counts = {}
     bookings.filter(b => b.status !== 'cancelled').forEach(b => {
-      const d = (b.destination || 'Other').replace(/ honeymoon/i, '').trim()
+      const d = (b.destination || 'Other').trim()
       counts[d] = (counts[d] || 0) + 1
     })
     return Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 5)
@@ -334,18 +327,18 @@ export default function Home() {
                   <AreaChart data={series} margin={{ top: 16, right: 22, left: -8, bottom: 0 }}>
                     <defs>
                       <linearGradient id="revFill" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#12A15A" stopOpacity={0.22} />
-                        <stop offset="100%" stopColor="#12A15A" stopOpacity={0} />
+                        <stop offset="0%" stopColor="#0D2A7D" stopOpacity={0.22} />
+                        <stop offset="100%" stopColor="#0D2A7D" stopOpacity={0} />
                       </linearGradient>
                     </defs>
                     <CartesianGrid vertical={false} stroke="#EEF1F5" />
                     <XAxis dataKey="label" tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: '#64748B' }} dy={8}
                       interval={series.length > 12 ? Math.ceil(series.length / 8) - 1 : 0} />
                     <YAxis tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: '#64748B' }} tickFormatter={inrShort} width={48} />
-                    <Tooltip content={<ChartTooltip />} cursor={{ stroke: '#12A15A', strokeDasharray: '4 4', strokeOpacity: 0.5 }} />
-                    <Area type="monotone" dataKey="value" stroke="#12A15A" strokeWidth={2.2} fill="url(#revFill)"
-                      dot={series.length <= 14 ? { r: 3.5, fill: '#12A15A', stroke: '#fff', strokeWidth: 1.5 } : false}
-                      activeDot={{ r: 5, fill: '#12A15A', stroke: '#fff', strokeWidth: 2 }} />
+                    <Tooltip content={<ChartTooltip />} cursor={{ stroke: '#0D2A7D', strokeDasharray: '4 4', strokeOpacity: 0.5 }} />
+                    <Area type="monotone" dataKey="value" stroke="#0D2A7D" strokeWidth={2.2} fill="url(#revFill)"
+                      dot={series.length <= 14 ? { r: 3.5, fill: '#0D2A7D', stroke: '#fff', strokeWidth: 1.5 } : false}
+                      activeDot={{ r: 5, fill: '#0D2A7D', stroke: '#fff', strokeWidth: 2 }} />
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
@@ -451,7 +444,7 @@ export default function Home() {
                 <div className="dest-grid">
                   {destinations.map(([name, count]) => (
                     <button key={name} className="dest-card" onClick={() => navigate(`/bookings?q=${encodeURIComponent(name)}`)}>
-                      <div className="dest-img" style={{ backgroundImage: `url(${destImage(name)})` }} />
+                      <div className="dest-img" style={{ backgroundImage: `url("${destImage(name)}")` }} />
                       <div className="dest-name">{name}</div>
                       <div className="dest-count">{count} Booking{count > 1 ? 's' : ''}</div>
                     </button>
@@ -526,24 +519,24 @@ export default function Home() {
           <div className="promo">
             <div className="promo-text">
               <div className="promo-eyebrow">Grow Your Business</div>
-              <div className="promo-title">More Bookings,<br />More Journeys</div>
-              <p>Manage leads, bookings, and customers all in one place.</p>
+              <div className="promo-title">More Pilgrims,<br />More Blessings</div>
+              <p>Manage Hajj &amp; Umrah leads, bookings and pilgrims in one place.</p>
               <button className="btn btn-primary btn-sm" onClick={() => navigate('/leads')}>
                 Explore Features <ArrowRight size={14} />
               </button>
             </div>
             <svg className="promo-art" viewBox="0 0 120 120" fill="none" aria-hidden="true">
-              <path d="M10 70c20-6 40-26 60-30" stroke="#12A15A" strokeOpacity=".35" strokeWidth="1.5" strokeDasharray="3 4" />
+              <path d="M10 70c20-6 40-26 60-30" stroke="#0D2A7D" strokeOpacity=".35" strokeWidth="1.5" strokeDasharray="3 4" />
               <g transform="translate(58 6) rotate(8)">
-                <path d="M4 22 44 8c4-1.5 7 0 7 2.5S49 14 45 15.5L10 27l-6 7-4-1 4-8-5-2 1-3z" fill="#12A15A" />
-                <path d="m22 16-8-10 5-1 14 7z" fill="#0C8A4B" />
+                <path d="M4 22 44 8c4-1.5 7 0 7 2.5S49 14 45 15.5L10 27l-6 7-4-1 4-8-5-2 1-3z" fill="#D90A0A" />
+                <path d="m22 16-8-10 5-1 14 7z" fill="#B00606" />
               </g>
-              <rect x="52" y="52" width="40" height="56" rx="8" fill="#12A15A" />
+              <rect x="52" y="52" width="40" height="56" rx="8" fill="#0D2A7D" />
               <rect x="52" y="52" width="40" height="56" rx="8" fill="url(#pg)" />
-              <rect x="64" y="42" width="16" height="12" rx="4" stroke="#0C8A4B" strokeWidth="3" />
+              <rect x="64" y="42" width="16" height="12" rx="4" stroke="#061B5C" strokeWidth="3" />
               <path d="M62 64v34M72 64v34M82 64v34" stroke="#fff" strokeOpacity=".35" strokeWidth="2" strokeLinecap="round" />
               <circle cx="60" cy="112" r="4" fill="#334155" /><circle cx="84" cy="112" r="4" fill="#334155" />
-              <path d="M18 108V88M24 108V80M30 108V92" stroke="#12A15A" strokeOpacity=".25" strokeWidth="4" strokeLinecap="round" />
+              <path d="M18 108V88M24 108V80M30 108V92" stroke="#0D2A7D" strokeOpacity=".25" strokeWidth="4" strokeLinecap="round" />
               <defs>
                 <linearGradient id="pg" x1="52" y1="52" x2="92" y2="108" gradientUnits="userSpaceOnUse">
                   <stop stopColor="#fff" stopOpacity=".18" /><stop offset="1" stopColor="#fff" stopOpacity="0" />

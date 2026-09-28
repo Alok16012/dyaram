@@ -1,14 +1,17 @@
 // ── Demo data ────────────────────────────────────────────────────────────
-// Seeds localStorage with realistic sample records so the CRM can be shown
-// without a Supabase backend. Runs once per browser (tracked by
+// Seeds localStorage with realistic Hajj & Umrah sample records so the CRM
+// can be shown without a Supabase backend. Runs once per browser (tracked by
 // DEMO_SEED_KEY); edits made during a demo persist until resetDemoData().
 // All dates are relative to "today" so charts and "this month" stats are
-// always populated.
+// always populated. All customer names and numbers are fictional.
+
+import { BRAND, bookingRef } from './brand'
+import { artTile } from './artTiles'
 
 const DEMO_SEED_KEY = 'demo_seed_version'
-const DEMO_SEED_VERSION = '4'
+const DEMO_SEED_VERSION = 'dh-2'
 
-// Login: admin / admin123 (full access), sales / demo123 (limited access)
+// Login: admin / admin123 (full access), sales / demo123, imran / demo123
 const ADMIN_HASH = '$2b$10$LIni/cQRHOqDOWnbW7lsC.gFwy/u98bAVRCYsz9Fa9Q02gp8mUCVe'
 const DEMO_HASH = '$2b$10$UbtaTSOTnqaEL5oUfPlZZOndNayUaY3mIMiYdm5wfBLqlEJ1v4z3C'
 
@@ -16,69 +19,106 @@ const DAY = 24 * 60 * 60 * 1000
 const ago = (days) => new Date(Date.now() - days * DAY).toISOString()
 const dateIn = (days) => new Date(Date.now() + days * DAY).toISOString().slice(0, 10)
 
-const img = (id) => `https://images.unsplash.com/${id}?w=900&q=70`
-const PHOTOS = {
-  dal: img('photo-1605649461784-eec84f8e5f0f'),
-  gulmarg: img('photo-1506905925346-21bda4d32df4'),
-  pahalgam: img('photo-1464822759023-fed622ff2c3b'),
-  sonamarg: img('photo-1551632811-561732d1e306'),
-  houseboat: img('photo-1589182373726-e4f658ab50f0'),
-  hotel: img('photo-1566073771259-6a8506099945'),
-  resort: img('photo-1582719508461-905c673771fd'),
-  ladakh: img('photo-1455156218388-5e61b526818b'),
+const PHOTO = {
+  haram: artTile({ scene: 'kaaba', palette: 'navy' }),
+  nabawi: artTile({ scene: 'madinah', palette: 'teal' }),
+  ramadan: artTile({ scene: 'mosque', palette: 'dusk' }),
+  hajj: artTile({ scene: 'kaaba', palette: 'night' }),
+  desert: artTile({ scene: 'desert', palette: 'sand' }),
+  quba: artTile({ scene: 'mosque', palette: 'teal' }),
+  flight: artTile({ scene: 'plane', palette: 'navy' }),
+  hotelMakkah: artTile({ scene: 'hotel', palette: 'navy' }),
+  hotelMadinah: artTile({ scene: 'hotel', palette: 'teal' }),
+}
+
+const UMRAH_INCLUSIONS = [
+  'Return Air Ticket', 'Umrah Visa with Insurance', 'Accommodation in Makkah & Madinah',
+  'Indian Meals 3 Times', 'Air-conditioned Transportation', 'Local Ziyarats in Makkah & Madinah',
+  '5 Liters Zamzam', '2 Time Laundry', 'Gifted Umrah Kit',
+]
+const HAJJ_INCLUDES_TEXT = 'Package Includes: Hajj Visa & Insurance | Return Air Ticket | Aziziyah Accommodation | Mina & Arafat Camps (Cat. A) | Indian Meals 3 Time | AC Transport | Qurbani Coupon | Hajj Guide | Gifted Hajj Kit'
+const INCLUDES_TEXT = 'Package Includes: Return Air Ticket | Umrah Visa with Insurance | Accommodation Mak & Med | Bus Service Makkah | Indian Meals 3 Time | Air-conditioned Transportation | Local Ziyarats in Makkah & Madinah | 5 Liters Zam Zam | 2 Time Laundry | Gifted Umrah Kit'
+
+// Day-by-day Umrah programme: arrive Makkah, Umrah, stay, Ziyarat, train to
+// Madinah, stay, Ziyarat, depart.
+function umrahDays({ makkahNights, madinahNights, makkahHotel, madinahHotel, madinahFirst = false }) {
+  const mk = (title, description, hotspots, extra = {}) => ({ title, description, hotspots, accommodation: makkahHotel.name, accom_star: makkahHotel.star, hotel: PHOTO.hotelMakkah, photo: PHOTO.haram, ...extra })
+  const md = (title, description, hotspots, extra = {}) => ({ title, description, hotspots, accommodation: madinahHotel.name, accom_star: madinahHotel.star, hotel: PHOTO.hotelMadinah, photo: PHOTO.nabawi, ...extra })
+  const makkah = [
+    mk(madinahFirst ? 'Madinah → Makkah by Haramain Train' : 'Departure from India – Arrival Jeddah → Makkah',
+      madinahFirst ? 'Wear Ihram at Dhul Hulaifa (Masjid Shajarah), travel to Makkah by Haramain high-speed train and check in.' : 'Group assembles at the airport in Ihram. On arrival at Jeddah, our representative receives you and transfers you by AC bus to your hotel in Makkah.',
+      madinahFirst ? ['Masjid Shajarah', 'Haramain Train'] : ['Jeddah Airport', 'Makkah'], { photo: madinahFirst ? PHOTO.desert : PHOTO.flight }),
+    mk('Perform Umrah', 'Perform Umrah with our group leader — Tawaf, Sa\'i between Safa and Marwah, and Halq/Taqsir. Rest of the day for ibadah in Masjid al-Haram.', ['Masjid al-Haram', 'Safa & Marwah']),
+  ]
+  for (let i = makkah.length; i < makkahNights; i++) {
+    if (i === 3) makkah.push(mk('Makkah Ziyarat', 'Guided Ziyarat of Jabal al-Nour (Ghar Hira), Jabal Thawr, Mina, Muzdalifah and Arafat (Jabal al-Rahmah).', ['Jabal al-Nour', 'Mina', 'Arafat', 'Muzdalifah'], { photo: PHOTO.desert }))
+    else makkah.push(mk('Ibadah in Makkah', 'Free day for prayers in Masjid al-Haram, nafl Tawaf and personal ibadah. Meals at the hotel.', ['Masjid al-Haram']))
+  }
+  const madinah = [
+    md(madinahFirst ? 'Departure from India – Arrival Madinah' : 'Makkah → Madinah by Haramain Train',
+      madinahFirst ? 'Arrive at Madinah airport, transfer to your hotel near Masjid an-Nabawi.' : 'After Fajr, check out and travel to Madinah by Haramain high-speed train. Check in near Masjid an-Nabawi.',
+      madinahFirst ? ['Madinah Airport'] : ['Haramain Train', 'Masjid an-Nabawi'], { photo: madinahFirst ? PHOTO.flight : PHOTO.nabawi }),
+  ]
+  for (let i = 1; i < madinahNights; i++) {
+    if (i === 2) madinah.push(md('Madinah Ziyarat', 'Guided Ziyarat of Masjid Quba, Masjid Qiblatain, Mount Uhud and the Martyrs of Uhud, and the Seven Mosques.', ['Masjid Quba', 'Masjid Qiblatain', 'Mount Uhud'], { photo: PHOTO.quba }))
+    else madinah.push(md('Ibadah in Madinah', 'Prayers in Masjid an-Nabawi, visit to Riyadh ul-Jannah (as per permit) and salam at Rawdah.', ['Masjid an-Nabawi', 'Riyadh ul-Jannah']))
+  }
+  const out = madinahFirst ? [...madinah, ...makkah] : [...makkah, ...madinah]
+  out.push({ title: madinahFirst ? 'Departure from Jeddah' : 'Departure from Madinah', description: 'Check out after breakfast and transfer to the airport for your flight home with 5 L Zamzam.', hotspots: [], accommodation: '', accom_star: 3, hotel: null, photo: PHOTO.flight })
+  return out
+}
+
+function hajjDays() {
+  const H = { name: 'Al Kiswah Towers Hotel (Aziziyah)', star: 4 }
+  const base = umrahDays({ makkahNights: 4, madinahNights: 5, makkahHotel: H, madinahHotel: { name: 'Dar Al Iman InterContinental', star: 5 } })
+  const makkahPart = base.slice(0, 4)
+  const rest = base.slice(4)
+  const hajj = [
+    { title: '8 Dhul Hijjah – Yawm at-Tarwiyah (Mina)', description: 'Enter Ihram for Hajj and proceed to the Mina camps. Prayers in Mina.', hotspots: ['Mina'], accommodation: 'Mina Camp (Category A)', accom_star: 4, hotel: null, photo: PHOTO.desert },
+    { title: '9 Dhul Hijjah – Day of Arafah', description: 'Wuquf at Arafat from Dhuhr to Maghrib, then proceed to Muzdalifah for the night.', hotspots: ['Arafat', 'Jabal al-Rahmah', 'Muzdalifah'], accommodation: 'Arafat Camp', accom_star: 4, hotel: null, photo: PHOTO.hajj },
+    { title: '10 Dhul Hijjah – Eid ul-Adha', description: 'Rami of Jamarat al-Aqabah, Qurbani, Halq, and Tawaf al-Ifadah in Masjid al-Haram.', hotspots: ['Jamarat', 'Masjid al-Haram'], accommodation: 'Mina Camp (Category A)', accom_star: 4, hotel: null, photo: PHOTO.hajj },
+    { title: '11–12 Dhul Hijjah – Days of Tashreeq', description: 'Rami of all three Jamarat each day and stay in Mina.', hotspots: ['Jamarat', 'Mina'], accommodation: 'Mina Camp (Category A)', accom_star: 4, hotel: null, photo: PHOTO.desert },
+    { ...makkahPart[2], title: 'Return to Makkah – Farewell Tawaf', description: 'Return to the Makkah hotel, rest and perform Tawaf al-Wada before leaving Makkah.' },
+  ]
+  return [...makkahPart, ...hajj, ...rest]
 }
 
 function buildDemoData() {
   const users = [
-    { id: 'u-admin', username: 'admin', password_hash: ADMIN_HASH, full_name: 'Administrator', role: 'Admin', is_admin: true, permissions: {}, active: true, created_at: ago(200) },
-    { id: 'u-riya', username: 'sales', password_hash: DEMO_HASH, full_name: 'Riya Sharma', role: 'Sales Executive', is_admin: false, permissions: { leads: true, bookings: true, itinerary: true, invoices: true }, active: true, created_at: ago(150) },
-    { id: 'u-aman', username: 'aman', password_hash: DEMO_HASH, full_name: 'Aman Verma', role: 'Operations', is_admin: false, permissions: { bookings: true, hotels: true, cabs: true, photos: true, expenses: true }, active: true, created_at: ago(120) },
+    { id: 'u-admin', username: 'admin', password_hash: ADMIN_HASH, full_name: 'Administrator', role: 'Admin', is_admin: true, permissions: {}, active: true, created_at: ago(300) },
+    { id: 'u-ayesha', username: 'sales', password_hash: DEMO_HASH, full_name: 'Ayesha Khan', role: 'Sales Executive', is_admin: false, permissions: { leads: true, bookings: true, itinerary: true, invoices: true }, active: true, created_at: ago(220) },
+    { id: 'u-imran', username: 'imran', password_hash: DEMO_HASH, full_name: 'Imran Sheikh', role: 'Operations', is_admin: false, permissions: { bookings: true, hotels: true, cabs: true, photos: true, expenses: true }, active: true, created_at: ago(180) },
   ]
   const owner = (i) => users[i % users.length]
 
-  // ── Itinerary packages ──
   const company = {
-    company_name: 'Shera Travels',
-    company_addr: 'Radio Colony, Lawaypora, Srinagar, Jammu and Kashmir 190017',
-    company_email: 'hello@sheratravels.in',
-    company_phone: '+91-90000 00000',
-    company_gst: '01ABCDE1234F1Z5',
+    company_name: BRAND.legalName,
+    company_addr: BRAND.address,
+    company_email: BRAND.email,
+    company_phone: BRAND.phone,
+    company_gst: BRAND.gst,
   }
+
+  // ── Itinerary packages ──
+  const SWISS = { name: 'Swissôtel Al Maqam Makkah', star: 5 }
+  const KISWAH = { name: 'Al Kiswah Towers Hotel (Aziziyah)', star: 4 }
+  const ELAF = { name: 'Elaf Ajyad Hotel', star: 4 }
+  const ANWAR = { name: 'Anwar Al Madinah Mövenpick', star: 5 }
+  const DAR = { name: 'Dar Al Iman InterContinental', star: 5 }
+  const HARAM_MD = { name: 'Al Haram Hotel Madinah', star: 4 }
   const pkgDefs = [
-    { title: '5 Nights 6 Days Kashmir Tour Package', nights: 5, client: 'Rahul Mehta', photo: PHOTOS.dal,
-      days: [
-        ['Arrival in Srinagar – Shikara Ride', 'Pickup from Srinagar airport, check-in to houseboat and evening Shikara ride on Dal Lake.', ['Dal Lake', 'Char Chinar'], 'Deluxe Houseboat', PHOTOS.houseboat],
-        ['Srinagar → Gulmarg', 'Day trip to Gulmarg, the meadow of flowers. Enjoy the Gondola ride (own cost).', ['Gulmarg Gondola', 'St. Mary Church'], 'Hotel Pine Spring', PHOTOS.gulmarg],
-        ['Srinagar → Pahalgam', 'Drive to Pahalgam via saffron fields and Avantipura ruins.', ['Betaab Valley', 'Aru Valley', 'Chandanwari'], 'Pahalgam Retreat', PHOTOS.pahalgam],
-        ['Pahalgam Local Sightseeing', 'Explore the valleys of Pahalgam at leisure.', ['Baisaran', 'Lidder River'], 'Pahalgam Retreat', PHOTOS.pahalgam],
-        ['Pahalgam → Sonamarg → Srinagar', 'Day excursion to Sonamarg, the meadow of gold.', ['Thajiwas Glacier', 'Zero Point'], 'Hotel Grand Mumtaz', PHOTOS.sonamarg],
-        ['Departure', 'Breakfast and transfer to Srinagar airport.', ['Mughal Gardens'], '', PHOTOS.dal],
-      ] },
-    { title: '3 Nights 4 Days Srinagar & Gulmarg Getaway', nights: 3, client: 'Priya Nair', photo: PHOTOS.gulmarg,
-      days: [
-        ['Arrival in Srinagar', 'Airport pickup, Mughal Gardens and Dal Lake Shikara ride.', ['Nishat Bagh', 'Shalimar Bagh'], 'Deluxe Houseboat', PHOTOS.houseboat],
-        ['Gulmarg Excursion', 'Full-day excursion to Gulmarg with Gondola ride.', ['Gondola Phase 1', 'Golf Course'], 'Hotel Grand Mumtaz', PHOTOS.gulmarg],
-        ['Sonamarg Excursion', 'Day trip to Sonamarg and Thajiwas Glacier.', ['Thajiwas Glacier'], 'Hotel Grand Mumtaz', PHOTOS.sonamarg],
-        ['Departure', 'Transfer to airport with sweet memories.', [], '', PHOTOS.dal],
-      ] },
-    { title: '6 Nights 7 Days Leh Ladakh Adventure', nights: 6, client: 'Karan Singh', photo: PHOTOS.ladakh,
-      days: [
-        ['Arrival in Leh – Acclimatisation', 'Rest day to acclimatise to the altitude.', ['Shanti Stupa', 'Leh Palace'], 'The Zen Ladakh', PHOTOS.ladakh],
-        ['Leh → Nubra Valley', 'Cross Khardung La, one of the highest motorable passes.', ['Khardung La', 'Hunder Dunes'], 'Nubra Organic Retreat', PHOTOS.ladakh],
-        ['Nubra → Pangong Lake', 'Drive to the stunning Pangong Tso.', ['Pangong Tso'], 'Pangong Camps', PHOTOS.ladakh],
-        ['Pangong → Leh', 'Return to Leh via Chang La.', ['Chang La'], 'The Zen Ladakh', PHOTOS.ladakh],
-        ['Leh Local', 'Monasteries and Magnetic Hill.', ['Hemis', 'Thiksey', 'Magnetic Hill'], 'The Zen Ladakh', PHOTOS.ladakh],
-        ['Sham Valley', 'Sangam and Alchi monastery.', ['Sangam', 'Alchi'], 'The Zen Ladakh', PHOTOS.ladakh],
-        ['Departure', 'Transfer to Leh airport.', [], '', PHOTOS.ladakh],
-      ] },
-    { title: '4 Nights 5 Days Kashmir Honeymoon Special', nights: 4, client: 'Ankit & Sneha', photo: PHOTOS.houseboat,
-      days: [
-        ['Arrival – Houseboat Stay', 'Candle-light dinner on a luxury houseboat.', ['Dal Lake'], 'Luxury Houseboat', PHOTOS.houseboat],
-        ['Gulmarg', 'Snow activities and Gondola.', ['Gulmarg'], 'Khyber Resort', PHOTOS.resort],
-        ['Pahalgam', 'Riverside stay in Pahalgam.', ['Betaab Valley'], 'Pahalgam Retreat', PHOTOS.pahalgam],
-        ['Srinagar Local', 'Shopping and Mughal Gardens.', ['Lal Chowk'], 'Hotel Grand Mumtaz', PHOTOS.hotel],
-        ['Departure', 'Airport drop.', [], '', PHOTOS.dal],
-      ] },
+    { title: '15 Days Economy Umrah Package', nights: 14, client: 'Mohammad Arif Ansari', photo: PHOTO.haram, from: 'Darbhanga → Jeddah',
+      days: umrahDays({ makkahNights: 9, madinahNights: 5, makkahHotel: ELAF, madinahHotel: HARAM_MD }),
+      prices: [['Adult (Quad sharing)', '12+ yrs', 82000], ['Adult (Triple sharing)', '12+ yrs', 89000], ['Adult (Double sharing)', '12+ yrs', 99000], ['Child (with bed)', '2–11 yrs', 72000], ['Infant', 'Below 2 yrs', 25000]] },
+    { title: '10 Days Premium Umrah Package', nights: 9, client: 'Farhan Qureshi', photo: artTile({ scene: 'kaaba', palette: 'dusk' }), from: 'Patna → Jeddah',
+      days: umrahDays({ makkahNights: 5, madinahNights: 4, makkahHotel: SWISS, madinahHotel: ANWAR }),
+      prices: [['Adult (Quad sharing)', '12+ yrs', 115000], ['Adult (Triple sharing)', '12+ yrs', 125000], ['Adult (Double sharing)', '12+ yrs', 145000], ['Child (with bed)', '2–11 yrs', 95000], ['Infant', 'Below 2 yrs', 30000]] },
+    { title: '21 Days Ramadan Umrah (Last Ashra)', nights: 20, client: 'Nadia Rahman', photo: PHOTO.ramadan, from: 'Delhi → Madinah',
+      days: umrahDays({ makkahNights: 14, madinahNights: 6, makkahHotel: ELAF, madinahHotel: HARAM_MD, madinahFirst: true }),
+      prices: [['Adult (Quad sharing)', '12+ yrs', 135000], ['Adult (Triple sharing)', '12+ yrs', 145000], ['Adult (Double sharing)', '12+ yrs', 165000], ['Child (with bed)', '2–11 yrs', 115000], ['Infant', 'Below 2 yrs', 35000]] },
+    { title: 'Hajj 2027 – Standard Hajj Package', nights: 14, client: 'Abdul Kareem', photo: PHOTO.hajj, from: 'Kolkata → Jeddah',
+      days: hajjDays(),
+      prices: [['Adult (Quad sharing)', '12+ yrs', 675000], ['Adult (Triple sharing)', '12+ yrs', 725000], ['Adult (Double sharing)', '12+ yrs', 795000]] },
   ]
 
   const packages = []
@@ -88,181 +128,133 @@ function buildDemoData() {
   pkgDefs.forEach((p, i) => {
     const pkgId = `pkg-${i + 1}`
     packages.push({
-      id: pkgId, title: p.title, sub_title: "Let's Travel The World",
-      nights: p.nights, days: p.nights + 1,
-      start_location: i === 2 ? 'Leh, Ladakh' : 'Srinagar, Jammu & Kashmir',
+      id: pkgId, title: p.title, sub_title: `${BRAND.name} — ${BRAND.slogan}`,
+      nights: p.nights, days: p.nights + 1, start_location: p.from,
       hero_photo_url: p.photo, client_name: p.client, created_by: owner(i).id,
-      inclusions: ['MAP (Room + Breakfast + Dinner)', 'Sightseeing', 'Transfers', 'Private Cab', 'Accommodation'],
-      exclusions: ['Airfare', 'Personal Expenses', 'Entry Tickets'],
-      tc_payment: '20% advance of total booking amount.\nBalance 7 days before travel.',
-      tc_cancel: 'Refund after deducting retention amount as per days left before travel.',
-      tc_notes: '', ...company,
-      created_at: ago(5 + i * 9), updated_at: ago(2 + i),
+      inclusions: i === 3 ? ['Hajj Visa & Insurance', 'Return Air Ticket', 'Aziziyah Accommodation', 'Mina & Arafat Camps (Cat. A)', 'Indian Meals 3 Times', 'AC Transport', 'Qurbani Coupon', 'Experienced Hajj Guide', 'Gifted Hajj Kit'] : UMRAH_INCLUSIONS,
+      exclusions: ['Personal Expenses', 'Extra Baggage', 'Anything not mentioned in inclusions'],
+      tc_payment: BRAND.invoiceTerms[0],
+      tc_cancel: 'Visa fee and air tickets are non-refundable once issued.\nHotel cancellation charges apply as per hotel policy.',
+      tc_notes: BRAND.invoiceTerms[1],
+      ...company,
+      created_at: ago(4 + i * 11), updated_at: ago(1 + i),
     })
-    const base = 6000 + p.nights * 3500
-    ;[['Adult', '12+ yrs', base], ['Child', '5–11 yrs', Math.round(base * 0.6)], ['Infant', '0–4 yrs', 0]].forEach(([pax_type, age_limit, price], j) => {
+    p.prices.forEach(([pax_type, age_limit, price], j) => {
       prices.push({ id: `${pkgId}-price-${j}`, package_id: pkgId, pax_type, age_limit, price, sort_order: j })
     })
-    p.days.forEach(([title, description, hotspots, accommodation, photo], j) => {
+    p.days.forEach((d, j) => {
       const dayId = `${pkgId}-day-${j + 1}`
       days.push({
-        id: dayId, package_id: pkgId, day_number: j + 1, title, description,
-        distance: j === 0 || j === p.days.length - 1 ? '15 km' : `${60 + j * 25} km`,
-        hotspots, themes: ['Nature', 'Sightseeing'],
-        meals: accommodation ? ['Stay', 'Breakfast', 'Dinner'] : ['Breakfast'],
-        accommodation, accom_star: accommodation ? 3 + (j % 3 === 0 ? 1 : 0) : 3,
-        hotel_photo_url: accommodation ? PHOTOS.hotel : null,
-        sort_order: j, created_at: ago(5 + i * 9),
+        id: dayId, package_id: pkgId, day_number: j + 1, title: d.title, description: d.description,
+        distance: '', hotspots: d.hotspots, themes: ['Ibadah', 'Ziyarat'],
+        meals: d.accommodation ? ['Stay', 'Breakfast', 'Lunch', 'Dinner'] : ['Breakfast'],
+        accommodation: d.accommodation, accom_star: d.accom_star, hotel_photo_url: d.hotel,
+        sort_order: j, created_at: ago(4 + i * 11),
       })
-      day_photos.push({ id: `${dayId}-ph`, day_id: dayId, photo_url: photo, tag_name: hotspots[0] || title, tag_type: 'location', slot_index: 0, created_at: ago(5) })
+      day_photos.push({ id: `${dayId}-ph`, day_id: dayId, photo_url: d.photo, tag_name: d.hotspots[0] || d.title, tag_type: 'location', slot_index: 0, created_at: ago(4) })
     })
   })
 
-  // ── Leads ──
-  const leadDefs = [
-    ['Rahul Mehta', 'Kashmir', 'advance_paid', 'Website', 2, 1, 45000, 60000, 3],
-    ['Priya Nair', 'Srinagar & Gulmarg', 'itinerary_sent', 'WhatsApp', 2, 0, 30000, 40000, 5],
-    ['Karan Singh', 'Leh Ladakh', 'negotiation', 'Referral', 4, 0, 90000, 120000, 8],
-    ['Ankit Gupta', 'Kashmir Honeymoon', 'completed', 'Social Media', 2, 0, 50000, 70000, 70],
-    ['Neha Kapoor', 'Kashmir', 'new_inquiry', 'Website', 3, 1, 40000, 55000, 0],
-    ['Vikram Rao', 'Pahalgam', 'contacted', 'Phone Call', 2, 2, 35000, 50000, 1],
-    ['Sana Qureshi', 'Gulmarg', 'new_inquiry', 'JustDial', 2, 0, 25000, 35000, 1],
-    ['Arjun Malhotra', 'Kashmir', 'documents', 'Website', 5, 2, 110000, 140000, 15],
-    ['Meera Iyer', 'Sonamarg', 'lost', 'WhatsApp', 2, 0, 20000, 30000, 40],
-    ['Rohan Das', 'Leh Ladakh', 'trip_ongoing', 'Referral', 3, 0, 85000, 95000, 25],
-    ['Fatima Sheikh', 'Kashmir', 'contacted', 'Walk-in', 4, 2, 60000, 80000, 2],
-    ['Aditya Joshi', 'Vaishno Devi', 'new_inquiry', 'Social Media', 6, 3, 45000, 60000, 0],
-    ['Pooja Reddy', 'Kashmir', 'negotiation', 'Website', 2, 1, 42000, 52000, 6],
-    ['Siddharth Jain', 'Gulmarg', 'completed', 'Referral', 2, 0, 38000, 45000, 100],
-    ['Kavya Menon', 'Kashmir', 'itinerary_sent', 'WhatsApp', 2, 0, 36000, 48000, 12],
-    ['Imran Lone', 'Pahalgam', 'completed', 'Phone Call', 4, 1, 55000, 65000, 130],
-    ['Divya Bansal', 'Newsletter', 'new_inquiry', 'Newsletter', 1, 0, null, null, 4],
-    ['Harsh Vardhan', 'Newsletter', 'new_inquiry', 'Newsletter', 1, 0, null, null, 9],
-  ]
-  const leads = leadDefs.map(([name, destination, stage, source, adults, children, bmin, bmax, age], i) => {
-    const u = owner(i)
-    const slug = name.toLowerCase().replace(/[^a-z]+/g, '.')
-    const phone = `+91 98${String(70000000 + i * 1234567).slice(0, 8)}`
-    return {
-      id: `lead-${i + 1}`, name, phone, whatsapp: phone, email: `${slug}@example.com`,
-      destination, travel_date: dateIn(10 + (i % 7) * 9 - (stage === 'completed' ? 120 : 0)),
-      return_date: dateIn(15 + (i % 7) * 9 - (stage === 'completed' ? 120 : 0)),
-      adults, children, infants: 0, budget_min: bmin, budget_max: bmax,
-      stage, source, package_id: i < 4 ? `pkg-${i + 1}` : null,
-      assigned_to: u.id, assigned_name: u.full_name,
-      notes: source === 'Newsletter' ? 'Newsletter signup from website' : (i % 3 === 0 ? 'Wants houseboat stay for 1 night.' : ''),
-      created_at: ago(age), updated_at: ago(Math.max(0, age - 1)),
-    }
-  })
-
-  // ── Bookings & payments ──
-  const bookingDefs = [
-    [0, 58000, 11600, 'advance_paid'],
-    [3, 64000, 64000, 'completed'],
-    [7, 132000, 26400, 'advance_paid'],
-    [9, 92000, 92000, 'fully_paid'],
-    [13, 42000, 42000, 'completed'],
-    [15, 61000, 61000, 'completed'],
-    [2, 115000, 0, 'confirmed'],
-  ]
-  const bookings = []
-  const payments = []
-  bookingDefs.forEach(([li, total, paid, status], i) => {
-    const l = leads[li]
-    const id = `bk-${i + 1}`
-    const advance = Math.round(total * 0.2)
-    const created = Math.max(1, (leadDefs[li][8] || 1) - 2)
-    bookings.push({
-      id, booking_ref: `ST-2026-${String(i + 1).padStart(4, '0')}`, lead_id: l.id, package_id: l.package_id,
-      customer_name: l.name, customer_email: l.email, customer_phone: l.phone, customer_whatsapp: l.whatsapp,
-      destination: l.destination, travel_date: l.travel_date, return_date: l.return_date,
-      adults: l.adults, children: l.children, infants: 0, nights: 5,
-      total_amount: total, advance_percent: 20, advance_amount: advance,
-      balance_amount: total - paid, paid_amount: paid, status,
-      booking_token: `demo-token-${i + 1}`, notes: '',
-      created_at: ago(created), updated_at: ago(Math.max(0, created - 1)),
-    })
-    if (paid > 0) {
-      payments.push({ id: `pay-${i + 1}-a`, booking_id: id, amount: Math.min(paid, advance), type: 'advance', method: i % 2 ? 'upi' : 'razorpay', status: 'success', notes: '', paid_at: ago(created), created_at: ago(created) })
-      if (paid > advance) {
-        payments.push({ id: `pay-${i + 1}-b`, booking_id: id, amount: paid - advance, type: 'balance', method: 'bank_transfer', status: 'success', notes: '', paid_at: ago(Math.max(0, created - 5)), created_at: ago(Math.max(0, created - 5)) })
-      }
-    }
-  })
-
-  // ── Extra generated volume ──
-  // Deterministic pseudo-random so every browser sees the same demo.
-  let seed = 42
+  // ── Leads, bookings & payments (deterministic pseudo-random) ──
+  let seed = 7
   const rnd = () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646 }
   const pick = (arr) => arr[Math.floor(rnd() * arr.length)]
-  const FIRST = ['Aarav', 'Ishita', 'Kabir', 'Ananya', 'Vivaan', 'Saanvi', 'Reyansh', 'Diya', 'Arnav', 'Myra', 'Yash', 'Tanvi', 'Nikhil', 'Riya', 'Manish', 'Shreya', 'Gaurav', 'Nisha', 'Varun', 'Aisha', 'Kunal', 'Sneha', 'Rakesh', 'Payal', 'Deepak', 'Jyoti', 'Mohit', 'Simran', 'Tarun', 'Zoya']
-  const LAST = ['Sharma', 'Verma', 'Patel', 'Iyer', 'Khan', 'Gupta', 'Singh', 'Reddy', 'Bose', 'Mishra', 'Chopra', 'Pillai', 'Agarwal', 'Nair', 'Saxena']
-  const TRIPS = [
-    ['Kashmir', 'pkg-1', 5], ['Srinagar & Gulmarg', 'pkg-2', 3], ['Leh Ladakh', 'pkg-3', 6],
-    ['Kashmir Honeymoon', 'pkg-4', 4], ['Pahalgam', 'pkg-1', 5], ['Gulmarg', 'pkg-2', 3],
-    ['Sonamarg', 'pkg-1', 4], ['Kashmir', 'pkg-1', 5], ['Leh Ladakh', 'pkg-3', 6],
+  const NAMES = [
+    'Mohammad Arif Ansari', 'Ayesha Siddiqui', 'Farhan Qureshi', 'Imran Ahmed', 'Zainab Fatima', 'Salman Shaikh',
+    'Nadia Rahman', 'Abdul Kareem', 'Rukhsar Bano', 'Tariq Hussain', 'Sana Mirza', 'Faisal Khan', 'Hina Kausar',
+    'Junaid Alam', 'Mehwish Parveen', 'Irfan Malik', 'Nargis Khatoon', 'Shahid Raza', 'Tabassum Ara', 'Aftab Alam',
+    'Rizwan Haider', 'Shabnam Perween', 'Naushad Ali', 'Gulnaz Begum', 'Asad Iqbal', 'Kaif Rizvi', 'Arshad Jamal',
+    'Samina Khatun', 'Mustafa Kamal', 'Yasmin Ara', 'Danish Anwar', 'Firoz Alam', 'Rehana Sultana', 'Zeeshan Akhtar',
+    'Farzana Nasreen', 'Mohammad Sajid', 'Uzma Parvez', 'Obaidullah Khan', 'Shaista Anjum', 'Nadeem Akhtar',
+    'Mohammad Zubair', 'Afreen Jahan', 'Anwar Hussain', 'Kulsum Bano', 'Tanveer Ahmad', 'Rubina Khatoon',
   ]
-  const SOURCES = ['Website', 'WhatsApp', 'Referral', 'Social Media', 'Phone Call', 'JustDial', 'Walk-in']
-  const STAGES = ['new_inquiry', 'new_inquiry', 'contacted', 'contacted', 'itinerary_sent', 'negotiation', 'advance_paid', 'completed', 'lost']
+  const CITIES = ['Darbhanga', 'Laheriasarai', 'Madhubani', 'Sitamarhi', 'Muzaffarpur', 'Samastipur', 'Patna', 'Kolkata', 'Delhi']
+  // [destination, package id, nights, price per person]
+  const TRIPS = [
+    ['Economy Umrah', 'pkg-1', 14, 82000], ['Economy Umrah', 'pkg-1', 14, 82000], ['Economy Umrah', 'pkg-1', 14, 82000],
+    ['Premium Umrah', 'pkg-2', 9, 115000], ['Premium Umrah', 'pkg-2', 9, 115000],
+    ['Ramadan Umrah', 'pkg-3', 20, 135000], ['Hajj 2027', 'pkg-4', 14, 675000],
+    ['Umrah + Taif Ziyarat', 'pkg-1', 14, 92000], ['Umrah + Dubai', null, 12, 105000],
+    ['Turkey Ziyarat Tour', null, 8, 95000], ['Al-Aqsa Ziyarat', null, 7, 110000],
+  ]
+  const SOURCES = ['Walk-in', 'WhatsApp', 'Referral', 'Phone Call', 'Social Media', 'Website', 'Referral', 'WhatsApp']
+  const STAGES = ['new_inquiry', 'new_inquiry', 'contacted', 'contacted', 'itinerary_sent', 'negotiation', 'advance_paid', 'documents', 'completed', 'lost']
   const STATUS = ['confirmed', 'advance_paid', 'advance_paid', 'balance_due', 'fully_paid', 'fully_paid', 'completed', 'cancelled']
+  const METHODS = [['upi', 'UPI IndusInd Bank'], ['upi', 'UPI'], ['bank_transfer', 'IndusInd Bank'], ['cash', 'Cash']]
+  const txn = () => `T26${String(Math.floor(1e11 + rnd() * 9e11))}`
+  const passport = () => `${pick('TRSUVWZ'.split(''))}${Math.floor(1000000 + rnd() * 8999999)}`
 
-  for (let i = 0; i < 46; i++) {
-    // Every 6th generated lead is a returning customer from the original list.
-    const returning = i % 6 === 5 ? leads[(i * 3) % 16] : null
-    const name = returning ? returning.name : `${pick(FIRST)} ${pick(LAST)}`
-    const [destination, package_id, nights] = pick(TRIPS)
-    // Skew toward recent days so "last 7 / 30 days" views are lively.
-    const age = Math.round(Math.pow(rnd(), 1.8) * 170)
-    const u = owner(i + 1)
-    const phone = returning ? returning.phone : `+91 9${String(Math.floor(100000000 + rnd() * 899999999))}`
-    const travelIn = Math.round(rnd() * 90) - 20
+  const leads = []
+  const bookings = []
+  const payments = []
+  let refSeq = 120
+
+  NAMES.forEach((name, i) => {
+    const [destination, package_id, nights, perPerson] = pick(TRIPS)
+    const age = i < 6 ? i * 0.4 : Math.round(Math.pow(rnd(), 1.7) * 170)
+    const u = owner(i)
+    const phone = `+91 ${pick(['6', '7', '8', '9'])}${String(Math.floor(100000000 + rnd() * 899999999))}`
+    const travelIn = destination === 'Hajj 2027' ? 250 + Math.round(rnd() * 20) : Math.round(rnd() * 100) - 25
+    const adults = 1 + Math.floor(rnd() * 4)
+    const children = rnd() < 0.3 ? 1 : 0
+    const stage = i < 5 ? pick(['new_inquiry', 'contacted', 'new_inquiry']) : pick(STAGES)
     const lead = {
-      id: `lead-g${i + 1}`, name, phone, whatsapp: phone,
+      id: `lead-${i + 1}`, name, phone, whatsapp: phone,
       email: `${name.toLowerCase().replace(/[^a-z]+/g, '.')}${i}@example.com`,
       destination, travel_date: dateIn(travelIn), return_date: dateIn(travelIn + nights),
-      adults: 1 + Math.floor(rnd() * 4), children: Math.floor(rnd() * 2.4), infants: 0,
-      budget_min: 25000 + Math.round(rnd() * 40) * 1000, budget_max: null,
-      stage: pick(STAGES), source: pick(SOURCES), package_id,
-      assigned_to: u.id, assigned_name: u.full_name, notes: '',
+      adults, children, infants: 0,
+      budget_min: perPerson * (adults + children) - 20000, budget_max: perPerson * (adults + children) + 20000,
+      stage, source: pick(SOURCES), package_id,
+      assigned_to: u.id, assigned_name: u.full_name,
+      notes: i % 4 === 0 ? `Family from ${pick(CITIES)}. Wants hotel close to Haram.` : i % 5 === 0 ? 'Senior citizen — needs wheelchair assistance.' : '',
       created_at: ago(age + rnd()), updated_at: ago(Math.max(0, age - 1)),
     }
-    lead.budget_max = lead.budget_min + 15000
     leads.push(lead)
 
-    if (i % 4 === 3 && !returning) continue // not every lead converts
-    const bIdx = bookings.length
-    const id = `bk-g${i + 1}`
-    const pax = lead.adults + lead.children
-    const total = Math.round((nights * 5200 + 6000) * pax / 500) * 500
-    const status = pick(STATUS)
-    const advance = Math.round(total * 0.2)
+    // Leads further down the funnel (and most older ones) become bookings.
+    const converts = ['advance_paid', 'documents', 'trip_ongoing', 'completed'].includes(stage) || (i >= 5 && rnd() < 0.55)
+    if (!converts) return
+    const pax = adults + children
+    const discount = rnd() < 0.5 ? pax * 2000 : 0
+    const total = perPerson * pax - discount
+    const status = ['completed'].includes(stage) ? 'completed' : pick(STATUS)
+    const advance = Math.round(total * 0.5 / 100) * 100
     const paid = status === 'confirmed' || status === 'cancelled' ? 0
       : ['fully_paid', 'completed'].includes(status) ? total
-      : status === 'balance_due' ? Math.round(total * 0.5) : advance
+      : status === 'balance_due' ? Math.round(total * 0.3 / 100) * 100 : advance
     const created = Math.max(0, Math.round(age * 0.8))
-    bookings.push({
-      id, booking_ref: `ST-2026-${String(bIdx + 1).padStart(4, '0')}`, lead_id: lead.id, package_id,
-      customer_name: name, customer_email: lead.email, customer_phone: phone, customer_whatsapp: phone,
+    const id = `bk-${bookings.length + 1}`
+    refSeq += 1
+    const b = {
+      id, booking_ref: bookingRef({ destination, travelDate: lead.travel_date, seq: refSeq }), lead_id: lead.id, package_id,
+      customer_name: pax > 1 ? `${name} +${pax - 1}` : name, customer_email: lead.email, customer_phone: phone, customer_whatsapp: phone,
       destination, travel_date: lead.travel_date, return_date: lead.return_date,
-      adults: lead.adults, children: lead.children, infants: 0, nights,
-      total_amount: total, advance_percent: 20, advance_amount: advance,
+      adults, children, infants: 0, nights,
+      total_amount: total, advance_percent: 50, advance_amount: advance,
       balance_amount: total - paid, paid_amount: paid, status,
-      booking_token: `demo-token-g${i + 1}`, notes: '',
+      booking_token: `demo-token-${bookings.length + 1}`, notes: '',
+      passport_no: passport(), discount, price_per_person: perPerson,
       created_at: ago(created + rnd() * 0.9), updated_at: ago(Math.max(0, created - 1)),
-    })
-    if (paid > 0) {
-      const first = Math.min(paid, advance)
-      payments.push({ id: `pay-g${i + 1}-a`, booking_id: id, amount: first, type: 'advance', method: pick(['razorpay', 'upi', 'bank_transfer']), status: 'success', notes: '', paid_at: ago(created), created_at: ago(created) })
-      if (paid > first) {
-        const d = Math.max(0, created - 3 - Math.floor(rnd() * 10))
-        payments.push({ id: `pay-g${i + 1}-b`, booking_id: id, amount: paid - first, type: 'balance', method: pick(['upi', 'bank_transfer', 'cash']), status: 'success', notes: '', paid_at: ago(d), created_at: ago(d) })
-      }
     }
-  }
+    bookings.push(b)
+    // Split what was paid into 1–3 instalments, like real UPI part-payments.
+    let left = paid
+    const parts = paid === 0 ? 0 : paid >= total && total > 150000 ? 3 : paid > 60000 ? 2 : 1
+    for (let k = 0; k < parts; k++) {
+      const amt = k === parts - 1 ? left : Math.round((paid / parts) / 100) * 100
+      left -= amt
+      const d = Math.max(0, created - k * (2 + Math.floor(rnd() * 5)))
+      const [method, label] = pick(METHODS)
+      payments.push({
+        id: `pay-${id}-${k}`, booking_id: id, amount: amt, type: k === 0 ? 'advance' : 'balance', method,
+        razorpay_payment_id: method === 'cash' ? null : txn(), status: 'success',
+        notes: method === 'cash' ? 'Cash at office' : label, paid_at: ago(d), created_at: ago(d),
+      })
+    }
+  })
 
   // ── Newsletter subscribers (website signups) ──
-  ;['Ritu Malhotra', 'Sameer Kulkarni', 'Neelam Joshi', 'Arjun Sethi', 'Pallavi Rao', 'Farhan Mir',
-    'Kriti Arora', 'Vikas Tiwari', 'Megha Kapoor', 'Hina Wani'].forEach((name, i) => {
+  ;['Shoaib Akhtar', 'Nazia Hasan', 'Adil Raza', 'Sadia Afreen', 'Mohsin Ali', 'Tahira Begum', 'Wajid Hussain', 'Asma Khatoon', 'Rafiq Ahmad', 'Heena Kauser'].forEach((name, i) => {
     leads.push({
       id: `lead-nl${i + 1}`, name, phone: null, whatsapp: null,
       email: `${name.toLowerCase().replace(/[^a-z]+/g, '.')}@example.com`,
@@ -273,61 +265,71 @@ function buildDemoData() {
     })
   })
 
-  // ── Invoices ──
-  const invoices = bookings.filter(b => b.status !== 'cancelled').slice(0, 14).map((b, i) => {
-    const rate = Math.round(b.total_amount / 1.05)
-    const tax = b.total_amount - rate
+  // ── Invoices (numbered like the real ones, e.g. 163) ──
+  const invoiced = bookings.filter(b => b.status !== 'cancelled').sort((a, z) => new Date(a.created_at) - new Date(z.created_at)).slice(-16)
+  const invoices = invoiced.map((b, i) => {
+    const pays = payments.filter(p => p.booking_id === b.id)
+    const pax = b.adults + b.children
+    const trip = new Date(b.travel_date).toLocaleString('en-GB', { month: 'short', year: 'numeric' }).toUpperCase()
+    const pkgName = b.package_id ? pkgDefs[Number(b.package_id.split('-')[1]) - 1].title : `${b.destination} Package`
+    const paidAmt = pays.reduce((s, p) => s + p.amount, 0)
     return {
-      id: `inv-${i + 1}`, invoice_number: `INV-2026-${String(101 + i)}`,
-      client_name: b.customer_name, client_phone: b.customer_phone, client_address: 'New Delhi, India',
-      client_gstin: '', client_state_code: '07', booking_id: b.id,
-      items: [{ id: `it-${i}`, description: `${b.nights}N/${b.nights + 1}D ${b.destination} Tour Package`, hsn: '998552', qty: 1, rate, discount: '', cgst: 2.5, sgst: 2.5, igst: '' }],
-      subtotal: rate, tax_amount: tax, amount: b.total_amount,
-      status: b.balance_amount === 0 ? 'paid' : i % 5 === 2 ? 'overdue' : 'unpaid',
-      issue_date: b.created_at.slice(0, 10), due_date: dateIn(10 - i * 3), notes: 'Thank you for travelling with us!',
+      id: `inv-${i + 1}`, invoice_number: String(148 + i), invoice_title: 'Hajj Umrah Package Booking',
+      booking_ref: b.booking_ref,
+      client_name: b.customer_name.toUpperCase(), client_phone: b.customer_phone, client_address: `${pick(CITIES)}, Bihar`,
+      client_gstin: '', client_state_code: '10', booking_id: b.id,
+      items: [{ id: `it-${i}`, description: `${pkgName} ${trip}`, details: b.destination.includes('Hajj') ? HAJJ_INCLUDES_TEXT : INCLUDES_TEXT, passport: b.passport_no, hsn: '', qty: pax, rate: b.price_per_person, discount: b.discount || '', cgst: '', sgst: '', igst: '' }],
+      payments: pays.map(p => ({ id: p.id, date: p.paid_at.slice(0, 10), amount: p.amount, mode: p.method === 'cash' ? 'Cash' : p.method === 'upi' ? 'UPI' : 'Bank Transfer', reference: p.razorpay_payment_id ? `${p.notes} ${p.razorpay_payment_id}` : '' })),
+      amount_paid: paidAmt,
+      subtotal: b.total_amount, tax_amount: 0, amount: b.total_amount,
+      status: paidAmt >= b.total_amount ? 'paid' : paidAmt > 0 ? 'partial' : i % 5 === 2 ? 'overdue' : 'unpaid',
+      issue_date: b.created_at.slice(0, 10), due_date: new Date(new Date(b.created_at).getTime() + 15 * DAY).toISOString().slice(0, 10), notes: 'Thanks for doing business with us',
       created_at: b.created_at,
     }
   })
 
-  // ── Hotels & cabs ──
+  // ── Hotels (Makkah & Madinah partners) ──
   const hotels = [
-    ['Hotel Grand Mumtaz', 'Srinagar', 4, 'Mr. Bhat', 4500],
-    ['Deluxe Houseboat New Golden Flower', 'Dal Lake, Srinagar', 4, 'Ghulam Nabi', 5200],
-    ['Hotel Pine Spring', 'Gulmarg', 3, 'Mr. Wani', 3800],
-    ['Khyber Himalayan Resort', 'Gulmarg', 5, 'Front Office', 18500],
-    ['Pahalgam Retreat', 'Pahalgam', 4, 'Mr. Lone', 5600],
-    ['The Zen Ladakh', 'Leh', 4, 'Tsering Dorje', 6200],
-  ].map(([name, location, star_rating, contact_person, rate_per_night], i) => ({
+    ['Swissôtel Al Maqam Makkah', 'Makkah (Abraj Al Bait)', 5, 'Reservations Desk', 22000, 'Haram view rooms on request'],
+    ['Hilton Suites Makkah', 'Makkah (Jabal Omar)', 5, 'Group Sales', 18500, ''],
+    ['Elaf Ajyad Hotel', 'Makkah (Ajyad)', 4, 'Mr. Saeed', 9800, '400 m from Haram, shuttle available'],
+    ['Al Kiswah Towers Hotel', 'Makkah (Aziziyah)', 4, 'Mr. Khalid', 6500, 'Used for Hajj groups (Aziziyah)'],
+    ['Anwar Al Madinah Mövenpick', 'Madinah (Central Area)', 5, 'Group Sales', 16500, ''],
+    ['Dar Al Iman InterContinental', 'Madinah (Central Area)', 5, 'Reservations Desk', 15000, ''],
+    ['Al Haram Hotel Madinah', 'Madinah (Central Area)', 4, 'Mr. Yusuf', 11000, 'Economy package partner'],
+  ].map(([name, location, star_rating, contact_person, rate_per_night, notes], i) => ({
     id: `hotel-${i + 1}`, name, location, star_rating, contact_person,
-    phone: `+91 94190 ${String(10000 + i * 1111)}`, email: `reservations${i + 1}@example.com`,
-    rate_per_night, notes: i === 1 ? 'Includes Shikara pickup' : '', created_at: ago(90 - i),
+    phone: `+966 5${String(40000000 + i * 1357913).slice(0, 8)}`, email: `groups${i + 1}@example.com`,
+    rate_per_night, notes, created_at: ago(120 - i),
   }))
+
+  // ── Transport vendors (Cabs page) ──
   const cabs = [
-    ['Kashmir Cab Service', 'Innova Crysta', 'Javid Ahmad', 4500, 'per day'],
-    ['Valley Travels', 'Swift Dzire', 'Mushtaq', 2800, 'per day'],
-    ['Himalayan Tempo', 'Tempo Traveller (12 seater)', 'Rafiq', 7000, 'per day'],
-    ['Ladakh Wheels', 'Toyota Innova', 'Stanzin', 5500, 'per day'],
-    ['Airport Express', 'Etios', 'Bilal', 1200, 'per trip'],
-  ].map(([vendor_name, vehicle_type, contact_person, rate, rate_unit], i) => ({
+    ['Al Safwa Transport', 'GMC Yukon (7 seater)', 'Abdul Rahman', 12500, 'per trip', 'Jeddah Airport → Makkah'],
+    ['Makkah Ziyarat Bus Service', 'Coaster Bus (25 seater)', 'Yusuf', 18000, 'per day', 'Group Ziyarat'],
+    ['Haramain Transport Co.', 'Hyundai H1 (10 seater)', 'Khalid', 9500, 'per trip', 'Makkah ↔ Madinah by road'],
+    ['Madinah Taxi Services', 'Toyota Camry', 'Faisal', 6500, 'per trip', 'Madinah Airport transfers'],
+    ['Darbhanga Travels', 'Innova Crysta', 'Naushad', 4500, 'per trip', 'Home → Darbhanga / Patna airport'],
+  ].map(([vendor_name, vehicle_type, contact_person, rate, rate_unit, notes], i) => ({
     id: `cab-${i + 1}`, vendor_name, vehicle_type, contact_person,
-    phone: `+91 70060 ${String(20000 + i * 2222)}`, rate, rate_unit, notes: '', created_at: ago(80 - i),
+    phone: i === 4 ? `+91 9${String(430000000 + i * 1111111)}` : `+966 5${String(50000000 + i * 2468013).slice(0, 8)}`,
+    rate, rate_unit, notes, created_at: ago(100 - i),
   }))
 
   // ── Income & expenses (spread over the last 6 months) ──
-  const income = []
-  payments.forEach((p, i) => {
+  const income = payments.map((p, i) => {
     const b = bookings.find(x => x.id === p.booking_id)
-    income.push({ id: `inc-${i + 1}`, date: p.paid_at.slice(0, 10), source: `${b.customer_name} (${b.booking_ref})`, category: 'Booking Payment', amount: p.amount, booking_id: b.id, notes: '', created_at: p.paid_at })
+    return { id: `inc-${i + 1}`, date: p.paid_at.slice(0, 10), source: `${b.customer_name} (${b.booking_ref})`, category: 'Booking Payment', amount: p.amount, booking_id: b.id, notes: p.notes || '', created_at: p.paid_at }
   })
-  ;[[20, 8500], [55, 12000], [95, 6500], [140, 9000]].forEach(([d, amt], i) => {
-    income.push({ id: `inc-c-${i + 1}`, date: ago(d).slice(0, 10), source: 'Hotel partner commission', category: 'Commission', amount: amt, booking_id: null, notes: '', created_at: ago(d) })
+  ;[[20, 18500], [55, 24000], [95, 15500], [140, 21000]].forEach(([d, amt], i) => {
+    income.push({ id: `inc-c-${i + 1}`, date: ago(d).slice(0, 10), source: 'Airline group ticket commission', category: 'Commission', amount: amt, booking_id: null, notes: '', created_at: ago(d) })
   })
   const expenses = []
   const expDefs = [
-    ['Hotel', 'Hotel Grand Mumtaz', 18000], ['Cab/Transport', 'Kashmir Cab Service', 13500],
-    ['Staff Salary', 'Monthly payroll', 45000], ['Marketing', 'Instagram Ads', 8000],
-    ['Office', 'Office rent', 15000], ['Hotel', 'Pahalgam Retreat', 11200],
-    ['Cab/Transport', 'Ladakh Wheels', 22000], ['Other', 'Printing & stationery', 1800],
+    ['Hotel', 'Elaf Ajyad Hotel', 98000], ['Hotel', 'Al Haram Hotel Madinah', 66000],
+    ['Cab/Transport', 'Al Safwa Transport', 37500], ['Staff Salary', 'Monthly payroll', 85000],
+    ['Marketing', 'Facebook & Instagram ads', 15000], ['Office', 'Office rent – Laheriasarai', 18000],
+    ['Other', 'Umrah kits & ihram', 12000], ['Other', 'Visa processing charges', 28000],
   ]
   for (let m = 0; m < 6; m++) {
     expDefs.forEach(([category, vendor, amount], j) => {
@@ -339,41 +341,41 @@ function buildDemoData() {
 
   // ── Photo library ──
   const photo_library = [
-    ['Dal Lake', 'location', PHOTOS.dal], ['Gulmarg', 'location', PHOTOS.gulmarg],
-    ['Pahalgam', 'location', PHOTOS.pahalgam], ['Sonamarg', 'location', PHOTOS.sonamarg],
-    ['Pangong Lake', 'location', PHOTOS.ladakh], ['Luxury Houseboat', 'hotel', PHOTOS.houseboat],
-    ['Hotel Grand Mumtaz', 'hotel', PHOTOS.hotel], ['Khyber Resort', 'hotel', PHOTOS.resort],
+    ['Masjid al-Haram', 'location', PHOTO.haram], ['Masjid an-Nabawi', 'location', PHOTO.nabawi],
+    ['Jabal al-Nour', 'location', PHOTO.desert], ['Masjid Quba', 'location', PHOTO.quba],
+    ['Arafat', 'location', PHOTO.hajj], ['Ramadan nights', 'location', PHOTO.ramadan],
+    ['Swissôtel Al Maqam', 'hotel', PHOTO.hotelMakkah], ['Anwar Al Madinah Mövenpick', 'hotel', PHOTO.hotelMadinah],
   ].map(([tag_name, tag_type, photo_url], i) => ({
-    id: `photo-${i + 1}`, photo_url, file_name: `${tag_name.toLowerCase().replace(/\s+/g, '-')}.jpg`, tag_name, tag_type, created_at: ago(60 - i),
+    id: `photo-${i + 1}`, photo_url, file_name: `${tag_name.toLowerCase().replace(/\s+/g, '-')}.svg`, tag_name, tag_type, created_at: ago(60 - i),
   }))
 
   // ── Audit logs ──
+  const firstBooking = bookings[0]
   const audit_logs = [
     ['Administrator', 'Login', 'Logged in as admin', 0],
-    ['Riya Sharma', 'Lead Created', 'New lead: Neha Kapoor (Kashmir)', 0],
-    ['Riya Sharma', 'Booking Created', 'ST-2026-0001 for Rahul Mehta', 1],
-    ['Aman Verma', 'Expense Added', 'Hotel Grand Mumtaz — ₹18,000', 2],
-    ['Administrator', 'Invoice Generated', 'INV-2026-101 for Rahul Mehta', 2],
-    ['Riya Sharma', 'Lead Stage Changed', 'Karan Singh → Negotiation', 3],
-    ['Administrator', 'User Created', 'Aman Verma (Operations)', 5],
-    ['Aman Verma', 'Hotel Added', 'The Zen Ladakh, Leh', 6],
+    ['Ayesha Khan', 'Lead Created', `New lead: ${leads[0].name} (${leads[0].destination})`, 0],
+    ['Ayesha Khan', 'Booking Created', `${firstBooking?.booking_ref} for ${firstBooking?.customer_name}`, 1],
+    ['Imran Sheikh', 'Expense Added', 'Elaf Ajyad Hotel — ₹98,000', 2],
+    ['Administrator', 'Invoice Generated', `Invoice ${invoices[invoices.length - 1]?.invoice_number} for ${invoices[invoices.length - 1]?.client_name}`, 2],
+    ['Ayesha Khan', 'Lead Stage Changed', `${leads[3].name} → Itinerary Sent`, 3],
+    ['Administrator', 'User Created', 'Imran Sheikh (Operations)', 5],
+    ['Imran Sheikh', 'Hotel Added', 'Anwar Al Madinah Mövenpick, Madinah', 6],
   ].map(([actor, action, details, d], i) => ({ id: `log-${i + 1}`, actor, action, details, created_at: ago(d + i * 0.05) }))
 
   // ── Website packages (site_content) ──
-  const webPkg = (i, title, location, img, price, originalPrice, days, category, badge) => ({
-    id: i, slug: title.toLowerCase().replace(/[^a-z0-9]+/g, '-'), title, location, state: 'Jammu & Kashmir',
-    image: img, gallery: [img], price, originalPrice, duration: `${days - 1}N/${days}D`, days, nights: days - 1,
-    groupSize: '2-15', minAge: 5, rating: 4.8, reviews: 40 + i * 12, dates: [dateIn(20), dateIn(35)],
-    difficulty: 'Easy', badge, category, overview: `Experience the best of ${location} with our handpicked ${days - 1}-night itinerary.`,
-    highlights: ['Shikara ride on Dal Lake', 'Gondola ride in Gulmarg', 'Private cab throughout'],
-    itinerary: [], inclusions: ['Hotel stay', 'Breakfast & dinner', 'Sightseeing by private cab'],
-    exclusions: ['Airfare', 'Personal expenses'], importantNotes: [], thingsToCarry: ['Warm clothes', 'ID proof'],
+  const webPkg = (i, title, location, image, price, originalPrice, days, category, badge, highlights) => ({
+    id: i, slug: title.toLowerCase().replace(/[^a-z0-9]+/g, '-'), title, location, state: 'Saudi Arabia',
+    image, gallery: [image], price, originalPrice, duration: `${days - 1}N/${days}D`, days, nights: days - 1,
+    groupSize: '10-45', minAge: 0, rating: 4.9, reviews: 60 + i * 15, dates: [dateIn(20), dateIn(45)],
+    difficulty: 'Easy', badge, category, overview: `${title} by ${BRAND.legalName} — hotels in Makkah & Madinah, meals, transport and guided Ziyarat.`,
+    highlights, itinerary: [], inclusions: UMRAH_INCLUSIONS, exclusions: ['Personal expenses', 'Extra baggage'],
+    importantNotes: ['Passport must be valid for at least 6 months', 'Meningitis vaccination certificate required'], thingsToCarry: ['Ihram (2 sets)', 'Passport & ID', 'Comfortable footwear'],
   })
   const site_content = [
     { key: 'packages', value: [
-      webPkg(1, 'Kashmir Paradise Tour', 'Srinagar, Gulmarg, Pahalgam', PHOTOS.dal, 18999, 24999, 6, 'Kashmir', 'Bestseller'),
-      webPkg(2, 'Kashmir Honeymoon Special', 'Srinagar, Gulmarg', PHOTOS.houseboat, 22999, 27999, 5, 'Honeymoon', 'Popular'),
-      webPkg(3, 'Leh Ladakh Adventure', 'Leh, Nubra, Pangong', PHOTOS.ladakh, 27999, 32999, 7, 'Ladakh', 'New'),
+      webPkg(1, '15 Days Economy Umrah', 'Makkah & Madinah', PHOTO.haram, 82000, 90000, 15, 'Umrah', 'Bestseller', ['Hotel near Haram with shuttle', 'Indian meals 3 times', 'Guided Ziyarat']),
+      webPkg(2, '10 Days Premium Umrah', 'Makkah & Madinah', artTile({ scene: 'kaaba', palette: 'dusk' }), 115000, 125000, 10, 'Umrah', 'Popular', ['5-star hotels at walking distance', 'Haramain train', 'Private transfers']),
+      webPkg(3, '21 Days Ramadan Umrah', 'Madinah & Makkah', PHOTO.ramadan, 135000, 150000, 21, 'Ramadan Umrah', 'Limited Seats', ['Last Ashra in Makkah', 'Iftar & Suhoor included', 'Experienced group leader']),
     ], updated_at: ago(3) },
   ]
 
@@ -401,3 +403,4 @@ export function seedDemoData(force = false) {
 export function resetDemoData() {
   seedDemoData(true)
 }
+

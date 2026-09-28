@@ -159,7 +159,7 @@ export default function NewsletterSubscribers() {
               <label style={{ display: 'block' }}>
                 <span style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 5, color: 'var(--text-dim)' }}>Subject</span>
                 <input className="glass-input" style={{ width: '100%', padding: '10px 12px', fontSize: 13 }} value={subject}
-                  placeholder="New Kashmir offers this month!" onChange={e => setSubject(e.target.value)} />
+                  placeholder="Ramadan Umrah packages now open!" onChange={e => setSubject(e.target.value)} />
               </label>
               <label style={{ display: 'block' }}>
                 <span style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 5, color: 'var(--text-dim)' }}>Message</span>

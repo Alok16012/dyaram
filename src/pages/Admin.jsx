@@ -6,19 +6,20 @@ import { saveCredentials, clearCredentials, getStoredCredentials, isLive, isDemo
 import { resetDemoData } from '../lib/demoData'
 import { isAdmin } from '../lib/auth'
 import { ShieldCheck, FlaskConical, Database, Building2, IndianRupee, X } from 'lucide-react'
+import { BRAND } from '../lib/brand'
 
 const DEFAULT_COMPANY = {
-  name: 'Shera Travels',
-  addr: 'Radio Colony, Srinagar, Lawaypora, Srinagar, Jammu and Kashmir 190017',
-  email: 'sheratravels21@gmail.com',
-  phone: '+91-9149406965, 9858966518',
-  gst: '01KODPS7232P1ZE',
+  name: BRAND.legalName,
+  addr: BRAND.address,
+  email: BRAND.email,
+  phone: BRAND.phone,
+  gst: BRAND.gst,
 }
 
 const DEFAULT_PRICE_TEMPLATES = [
-  { pax_type: 'Adult', age_limit: 'Above 12 years', price: 17500 },
-  { pax_type: 'Child', age_limit: '5–12 years', price: 8000 },
-  { pax_type: 'Infant', age_limit: 'Below 5 years', price: 0 },
+  { pax_type: 'Adult (Quad sharing)', age_limit: 'Above 12 years', price: 95000 },
+  { pax_type: 'Child (with bed)', age_limit: '2–12 years', price: 75000 },
+  { pax_type: 'Infant', age_limit: 'Below 2 years', price: 25000 },
 ]
 
 export default function Admin() {
@@ -207,7 +208,7 @@ export default function Admin() {
             </div>
             <div className="form-field full">
               <label>GST Number</label>
-              <input className="glass-input" value={company.gst || ''} onChange={e => setCompany({...company, gst: e.target.value})} placeholder="01KODPS7232P1ZE" />
+              <input className="glass-input" value={company.gst || ''} onChange={e => setCompany({...company, gst: e.target.value})} placeholder="e.g. 27ABCDE1234F1Z5" />
             </div>
             <div className="form-actions full">
               <button className="btn btn-primary" onClick={saveCompany}>Save</button>

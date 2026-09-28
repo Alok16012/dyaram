@@ -1,5 +1,5 @@
 -- ═══════════════════════════════════════
--- SHERA TRAVELS — ITINERARY MAKER
+-- DAYARE HARAM HAJJ UMRAH TOURS — CRM
 -- Supabase SQL Schema
 -- Run this in: Supabase Dashboard → SQL Editor
 -- ═══════════════════════════════════════
@@ -18,11 +18,11 @@ create table if not exists packages (
   tc_payment text,
   tc_cancel text,
   tc_notes text,
-  company_name text default 'Shera Travels',
-  company_addr text default 'Radio Colony, Srinagar, Lawaypora, Srinagar, Jammu and Kashmir 190017',
-  company_email text default 'sheratravels21@gmail.com',
-  company_phone text default '+91-9149406965, 9858966518',
-  company_gst text default '01KODPS7232P1ZE',
+  company_name text default 'Dayare Haram Hajj Umrah Tours Pvt Ltd',
+  company_addr text default 'Karamganj Road, Near Shiksha Bhawan, P.O & P.S - Laheriasarai, Darbhanga, Bihar, 846001 India',
+  company_email text default 'info@dayareharam.com',
+  company_phone text default '9555659996, 06272-351228',
+  company_gst text default '10AAKCD2064Q2ZI',
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
@@ -195,11 +195,7 @@ alter table photo_library disable row level security;
 -- MIGRATION: Add company_gst if not already present
 -- Run this if you already have the packages table from an older schema
 -- ═══════════════════════════════════════
-alter table packages add column if not exists company_gst text default '01KODPS7232P1ZE';
-
--- Update existing rows with the correct address and GST (run only if needed)
--- update packages set company_gst = '01KODPS7232P1ZE' where company_gst is null;
--- update packages set company_addr = 'Radio Colony, Srinagar, Lawaypora, Srinagar, Jammu and Kashmir 190017' where company_addr = 'Budgam, Jammu & Kashmir, India';
+alter table packages add column if not exists company_gst text default '10AAKCD2064Q2ZI';
 
 -- ═══════════════════════════════════════
 -- MIGRATION: Add client_name to packages
@@ -287,6 +283,14 @@ alter table invoices add column if not exists client_state_code text;
 alter table invoices add column if not exists items jsonb default '[]';
 alter table invoices add column if not exists subtotal numeric default 0;
 alter table invoices add column if not exists tax_amount numeric default 0;
+-- Invoice layout (booking ref, title, part-payments)
+alter table invoices add column if not exists booking_ref text;
+alter table invoices add column if not exists invoice_title text;
+alter table invoices add column if not exists payments jsonb default '[]';
+alter table invoices add column if not exists amount_paid numeric default 0;
+-- Assigned-to name and package owner used by the CRM screens
+alter table leads add column if not exists assigned_name text;
+alter table packages add column if not exists created_by uuid;
 
 alter table invoices disable row level security;
 alter table hotels disable row level security;
@@ -319,8 +323,8 @@ alter table app_users disable row level security;
 
 -- ═══════════════════════════════════════
 -- SITE CONTENT (editable website content)
--- Powers the CRM "Website Content" editor and the public website
--- (travelshera). One row per page, e.g. key = 'about', value = JSON.
+-- Powers the CRM "Website Content" editor and the public website.
+-- One row per page, e.g. key = 'about', value = JSON.
 -- ═══════════════════════════════════════
 
 create table if not exists site_content (

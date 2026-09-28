@@ -1,6 +1,8 @@
-# Travel CRM
+# Dayare Haram CRM
 
-Travel agency CRM + itinerary maker (React + Vite).
+CRM for **Dayare Haram Hajj Umrah Tours Pvt Ltd** — leads, bookings, Umrah/Hajj itineraries, invoices, payments and reports (React + Vite).
+
+Brand name, logo, contact, GST and bank details live in `src/lib/brand.js`.
 
 ## Run
 
@@ -13,7 +15,7 @@ npm run dev
 
 Without Supabase credentials the app runs in **demo mode**: all data lives in
 the browser's localStorage and is pre-seeded with sample leads, bookings,
-itineraries, invoices, hotels, cabs, income, expenses and more
+Umrah/Hajj itineraries, invoices, Makkah & Madinah hotels, transport, income, expenses and more
 (`src/lib/demoData.js`).
 
 Demo logins:
@@ -22,7 +24,7 @@ Demo logins:
 |-------|----------|--------|
 | admin | admin123 | Full admin |
 | sales | demo123  | Leads, Bookings, Itinerary, Invoices |
-| aman  | demo123  | Bookings, Hotels, Cabs, Photos, Expenses |
+| imran | demo123  | Bookings, Hotels, Cabs, Photos, Expenses |
 
 Settings → **Reset Demo Data** restores the original sample data.
 

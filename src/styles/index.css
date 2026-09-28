@@ -6,9 +6,9 @@
   --bg-card: #FFFFFF;
   --border-glass: #E2E8F0;
   --primary: #10B981;
-  --primary-dark: #059669;
-  --primary-light: #ECFDF5;
-  --primary-glow: rgba(16, 185, 129, 0.15);
+  --primary-dark: #061B5C;
+  --primary-light: #E9EEF9;
+  --primary-glow: rgba(13, 42, 125, 0.15);
   --text-bright: #0F172A;
   --text-muted: #475569;
   --text-dim: #94A3B8;
@@ -123,7 +123,7 @@ body {
 .glass-input:focus {
   border-color: var(--primary);
   background: #FFFFFF;
-  box-shadow: 0 0 0 3px rgba(16,185,129,0.15);
+  box-shadow: 0 0 0 3px rgba(13,42,125,0.15);
 }
 
 /* ── SIDEBAR NAV ── */
@@ -254,7 +254,7 @@ body {
 .search-bar-input:focus {
   border-color: var(--primary);
   background: #FFFFFF;
-  box-shadow: 0 0 0 3px rgba(16,185,129,0.15);
+  box-shadow: 0 0 0 3px rgba(13,42,125,0.15);
 }
 
 /* ── HEADER ICON BUTTONS ── */
@@ -486,7 +486,7 @@ body {
 .top-bar-left { display: flex; align-items: center; gap: 20px; }
 .pkg-info h3 { font-size: 18px; font-weight: 800; margin-bottom: 2px; }
 .save-status { font-size: 11px; font-weight: 700; color: var(--text-dim); }
-.save-status.saved { color: #10b981; }
+.save-status.saved { color: #0D2A7D; }
 .save-status.saving { color: var(--primary); }
 
 .top-bar-actions { display: flex; gap: 12px; }
@@ -851,7 +851,7 @@ body {
 
 .pv-inc-list li::before {
   content: '✓ ';
-  color: #10b981;
+  color: #0D2A7D;
   font-weight: 700;
 }
 
@@ -1020,7 +1020,7 @@ body {
 }
 
 .pv-price-highlight {
-  color: #059669;
+  color: #061B5C;
   font-weight: 700;
 }
 
@@ -1366,6 +1366,8 @@ body {
   display: flex;
   align-items: center;
   gap: 16px;
+  flex: 1;
+  min-width: 0;
 }
 
 .day-num {
@@ -1377,7 +1379,9 @@ body {
   align-items: center;
   justify-content: center;
   font-weight: 800;
-  font-size: 14px;
+  font-size: 13px;
+  color: #fff;
+  flex-shrink: 0;
 }
 
 .day-title-input {
@@ -1387,7 +1391,8 @@ body {
   font-size: 14px;
   font-weight: 600;
   font-family: inherit;
-  width: 300px;
+  width: 100%;
+  min-width: 0;
 }
 
 .day-title-input:focus {
@@ -1565,8 +1570,8 @@ body {
 }
 
 .tag.green {
-  background: rgba(16, 185, 129, 0.2);
-  border-color: rgba(16, 185, 129, 0.3);
+  background: rgba(13, 42, 125, 0.2);
+  border-color: rgba(13, 42, 125, 0.3);
 }
 
 .tag-x {
@@ -2087,7 +2092,7 @@ body {
   padding: 0 6px;
   font-size: 10px;
   font-weight: 800;
-  color: #10b981;
+  color: #0D2A7D;
   border-radius: 4px;
   white-space: nowrap;
 }
@@ -2135,8 +2140,8 @@ body {
 }
 
 .price-summary-card {
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(99, 102, 241, 0.08));
-  border: 1px solid rgba(16, 185, 129, 0.3);
+  background: linear-gradient(135deg, rgba(13, 42, 125, 0.12), rgba(99, 102, 241, 0.08));
+  border: 1px solid rgba(13, 42, 125, 0.3);
   border-radius: 14px;
   padding: 16px;
   margin-bottom: 20px;
@@ -2175,14 +2180,14 @@ body {
 
 .price-summary-val {
   font-weight: 800;
-  color: #10b981;
+  color: #0D2A7D;
   font-size: 13px;
 }
 
 .price-summary-min {
   margin-top: 8px;
   padding-top: 10px;
-  border-top: 1px dashed rgba(16, 185, 129, 0.3);
+  border-top: 1px dashed rgba(13, 42, 125, 0.3);
 }
 .price-summary-min > span:first-child {
   font-size: 11px;

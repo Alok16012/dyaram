@@ -3,6 +3,7 @@
 // Credentials are secure in Vercel env vars — never exposed to browser
 
 import { isDemo } from './supabase'
+import { BRAND } from './brand'
 
 export const isEmailConfigured = true // always available via server API
 
@@ -37,7 +38,7 @@ function invoiceHTML(booking, payments = []) {
   <style>
     body { font-family: Inter, Arial, sans-serif; background: #F1F5F9; margin: 0; padding: 20px; color: #0F172A; }
     .wrap { max-width: 620px; margin: 0 auto; background: #fff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.08); }
-    .header { background: linear-gradient(135deg,#4F6EF7,#6366F1); padding: 32px; color: #fff; }
+    .header { background: linear-gradient(135deg,#0D2A7D,#061B5C); padding: 32px; color: #fff; }
     .header h1 { margin: 0 0 4px; font-size: 22px; font-weight: 900; }
     .header p  { margin: 0; opacity: 0.85; font-size: 14px; }
     .section   { padding: 24px 32px; border-bottom: 1px solid #E2E8F0; }
@@ -49,7 +50,7 @@ function invoiceHTML(booking, payments = []) {
     .amount-box { background: #F8FAFC; border-radius: 12px; padding: 16px 20px; margin-top: 8px; }
     .amount-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #E2E8F0; font-size: 14px; }
     .amount-row:last-child { border-bottom: none; padding-top: 10px; }
-    .total-row { font-size: 16px; font-weight: 900; color: #4F6EF7; }
+    .total-row { font-size: 16px; font-weight: 900; color: #0D2A7D; }
     .balance { font-size: 15px; font-weight: 800; color: #F59E0B; }
     .badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 800; }
     .paid  { background: #D1FAE5; color: #059669; }
@@ -67,7 +68,7 @@ function invoiceHTML(booking, payments = []) {
   <div class="section">
     <div class="section-title">Dear ${booking.customer_name || 'Traveller'},</div>
     <p style="font-size:14px;color:#334155;line-height:1.7;margin:0">
-      Your tour booking with <strong>Shera Travels</strong> has been confirmed.
+      Your tour booking with <strong>${BRAND.name}</strong> has been confirmed.
       We're excited to plan your perfect trip! Below are your booking details.
     </p>
   </div>
@@ -94,10 +95,10 @@ function invoiceHTML(booking, payments = []) {
   </div>
 
   <div class="footer">
-    <strong>Shera Travels</strong><br/>
-    ${booking.company_addr || 'Budgam, Jammu & Kashmir, India'}<br/>
-    📞 ${booking.company_phone || '+91-9149406965'} &nbsp;|&nbsp; ✉ ${booking.company_email || 'sheratravels21@gmail.com'}<br/><br/>
-    <em>Thank you for choosing Shera Travels. We'll be in touch soon!</em>
+    <strong>${BRAND.name}</strong><br/>
+    ${booking.company_addr || BRAND.address}<br/>
+    📞 ${booking.company_phone || BRAND.phone} &nbsp;|&nbsp; ✉ ${booking.company_email || BRAND.email}<br/><br/>
+    <em>Thank you for choosing ${BRAND.name}. We'll be in touch soon!</em>
   </div>
 </div>
 </body>
@@ -107,8 +108,8 @@ function invoiceHTML(booking, payments = []) {
 // ── Itinerary Email HTML ───────────────────────────────────
 function itineraryHTML(booking, pkg, days = [], prices = []) {
   const dayRows = days.map((d, i) => `
-    <div style="margin-bottom:18px;padding:16px;background:#F8FAFC;border-radius:10px;border-left:4px solid #4F6EF7">
-      <div style="font-weight:800;color:#4F6EF7;margin-bottom:6px">Day ${i+1}: ${(d.title||'').replace(/^Day \d+:\s*/,'')}</div>
+    <div style="margin-bottom:18px;padding:16px;background:#F8FAFC;border-radius:10px;border-left:4px solid #0D2A7D">
+      <div style="font-weight:800;color:#0D2A7D;margin-bottom:6px">Day ${i+1}: ${(d.title||'').replace(/^Day \d+:\s*/,'')}</div>
       ${d.description ? `<p style="font-size:13px;color:#334155;margin:0 0 8px;line-height:1.6">${d.description}</p>` : ''}
       ${d.accommodation ? `<div style="font-size:12px;color:#64748B">🏨 ${d.accommodation} ${'★'.repeat(d.accom_star||3)}</div>` : ''}
       ${(d.meals||[]).length ? `<div style="font-size:12px;color:#64748B;margin-top:4px">🍽 ${d.meals.join(' • ')}</div>` : ''}
@@ -118,7 +119,7 @@ function itineraryHTML(booking, pkg, days = [], prices = []) {
     <tr>
       <td style="padding:8px 12px;border-bottom:1px solid #E2E8F0">${p.pax_type}</td>
       <td style="padding:8px 12px;border-bottom:1px solid #E2E8F0;color:#64748B">${p.age_limit||''}</td>
-      <td style="padding:8px 12px;border-bottom:1px solid #E2E8F0;font-weight:700;color:#4F6EF7">₹${Number(p.price||0).toLocaleString('en-IN')}/person</td>
+      <td style="padding:8px 12px;border-bottom:1px solid #E2E8F0;font-weight:700;color:#0D2A7D">₹${Number(p.price||0).toLocaleString('en-IN')}/person</td>
     </tr>`).join('')
 
   return `
@@ -127,7 +128,7 @@ function itineraryHTML(booking, pkg, days = [], prices = []) {
 <head><meta charset="UTF-8"/>
 <style>body{font-family:Inter,Arial,sans-serif;background:#F1F5F9;margin:0;padding:20px;color:#0F172A}
 .wrap{max-width:620px;margin:0 auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08)}
-.header{background:linear-gradient(135deg,#4F6EF7,#6366F1);padding:32px;color:#fff}
+.header{background:linear-gradient(135deg,#0D2A7D,#061B5C);padding:32px;color:#fff}
 .section{padding:24px 32px;border-bottom:1px solid #E2E8F0}
 .st{font-size:11px;font-weight:800;color:#64748B;text-transform:uppercase;letter-spacing:.8px;margin-bottom:14px}
 .footer{background:#F8FAFC;padding:20px 32px;text-align:center;font-size:12px;color:#94A3B8}
@@ -136,12 +137,12 @@ function itineraryHTML(booking, pkg, days = [], prices = []) {
   <div class="header">
     <div style="font-size:13px;opacity:.8;margin-bottom:6px">Prepared exclusively for</div>
     <h1 style="margin:0 0 4px;font-size:24px;font-weight:900">${booking.customer_name}</h1>
-    <p style="margin:0;opacity:.85;font-size:14px">${pkg?.title || 'Kashmir Tour Package'}</p>
+    <p style="margin:0;opacity:.85;font-size:14px">${pkg?.title || 'Umrah Package'}</p>
   </div>
   <div class="section">
     <div class="st">Trip Overview</div>
     <div style="display:flex;gap:24px;flex-wrap:wrap;font-size:14px">
-      <div>📍 <strong>${booking.destination||'Kashmir'}</strong></div>
+      <div>📍 <strong>${booking.destination||'Umrah'}</strong></div>
       <div>🌙 <strong>${pkg?.nights||0} Nights / ${pkg?.days||0} Days</strong></div>
       <div>📅 <strong>${booking.travel_date ? new Date(booking.travel_date).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}) : '—'}</strong></div>
       <div>👤 <strong>${(booking.adults||0)+(booking.children||0)} Pax</strong></div>
@@ -161,7 +162,7 @@ function itineraryHTML(booking, pkg, days = [], prices = []) {
     </table>
   </div>` : ''}
   <div class="footer">
-    <strong>Shera Travels</strong> | 📞 ${booking.company_phone||'+91-9149406965'}<br/>
+    <strong>${BRAND.name}</strong> | 📞 ${booking.company_phone||BRAND.phone}<br/>
     <em style="margin-top:6px;display:block">This itinerary has been prepared exclusively for ${booking.customer_name}. Prices are indicative and subject to availability.</em>
   </div>
 </div></body></html>`
@@ -184,7 +185,7 @@ function receiptHTML(booking, justPaid, newPaidTotal, newBalance) {
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: Inter, Arial, sans-serif; background: #F1F5F9; color: #0F172A; padding: 20px; }
     .wrap { max-width: 600px; margin: 0 auto; background: #fff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.08); }
-    .header { background: linear-gradient(135deg,#4F6EF7,#6366F1); padding: 32px; color: #fff; text-align: center; }
+    .header { background: linear-gradient(135deg,#0D2A7D,#061B5C); padding: 32px; color: #fff; text-align: center; }
     .header h1 { font-size: 28px; font-weight: 900; margin-bottom: 4px; }
     .header p  { opacity: 0.85; font-size: 14px; }
     .check { width: 60px; height: 60px; background: rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 30px; margin: 0 auto 16px; }
@@ -204,7 +205,7 @@ function receiptHTML(booking, justPaid, newPaidTotal, newBalance) {
     .badge-due  { background: #FEF3C7; color: #D97706; }
     .badge-paid { background: #D1FAE5; color: #059669; }
     .ref-box { background: #EEF2FF; border-radius: 10px; padding: 12px 20px; text-align: center; margin-top: 16px; }
-    .ref-num { font-size: 18px; font-weight: 900; color: #4F6EF7; letter-spacing: 1px; }
+    .ref-num { font-size: 18px; font-weight: 900; color: #0D2A7D; letter-spacing: 1px; }
     .footer { background: #F8FAFC; padding: 20px 32px; text-align: center; font-size: 12px; color: #94A3B8; }
     @media print {
       body { background: white; padding: 0; }
@@ -224,10 +225,10 @@ function receiptHTML(booking, justPaid, newPaidTotal, newBalance) {
   <div class="section">
     <div class="sec-title">Dear ${booking.customer_name || 'Traveller'},</div>
     <p style="font-size:14px;color:#334155;line-height:1.7">
-      Thank you for your payment! Here is your receipt for the booking with <strong>Shera Travels</strong>.
+      Thank you for your payment! Here is your receipt for the booking with <strong>${BRAND.name}</strong>.
     </p>
     <div class="ref-box">
-      <div style="font-size:11px;font-weight:700;color:#6366F1;margin-bottom:4px">BOOKING REFERENCE</div>
+      <div style="font-size:11px;font-weight:700;color:#061B5C;margin-bottom:4px">BOOKING REFERENCE</div>
       <div class="ref-num">${booking.booking_ref || '—'}</div>
     </div>
   </div>
@@ -261,10 +262,10 @@ function receiptHTML(booking, justPaid, newPaidTotal, newBalance) {
   </div>
 
   <div class="footer">
-    <strong>Shera Travels</strong><br/>
-    ${booking.company_addr || 'Radio Colony, Srinagar, Lawaypora, Srinagar, J&K 190017'}<br/>
-    📞 ${booking.company_phone || '+91-9149406965'} &nbsp;|&nbsp; ✉ ${booking.company_email || 'sheratravels21@gmail.com'}<br/><br/>
-    <em>Please save this receipt for your records. Thank you for choosing Shera Travels! ✈️</em>
+    <strong>${BRAND.name}</strong><br/>
+    ${booking.company_addr || BRAND.address}<br/>
+    📞 ${booking.company_phone || BRAND.phone} &nbsp;|&nbsp; ✉ ${booking.company_email || BRAND.email}<br/><br/>
+    <em>Please save this receipt for your records. Thank you for choosing ${BRAND.name}! ✈️</em>
   </div>
 </div>
 </body>
@@ -331,7 +332,7 @@ export async function sendItineraryEmail(booking, pkg, days = [], prices = []) {
   return callEmailAPI({
     type:    'itinerary',
     to:      booking.customer_email,
-    subject: `Your Personalised Itinerary — ${booking.destination || 'Kashmir'} | Shera Travels`,
+    subject: `Your Personalised Itinerary — ${booking.destination || 'Umrah'} | ${BRAND.name}`,
     html:    itineraryHTML(booking, pkg, days, prices),
   })
 }
@@ -346,9 +347,9 @@ export function buildWhatsAppLink(phone, message) {
 export function bookingConfirmationWA(booking) {
   const msg = `Hi ${booking.customer_name}! 🙏
 
-*Booking Confirmed — Shera Travels*
+*Booking Confirmed — ${BRAND.name}*
 📋 Ref: *${booking.booking_ref}*
-📍 Destination: *${booking.destination || 'Kashmir'}*
+📍 Destination: *${booking.destination || 'Umrah'}*
 📅 Travel Date: *${booking.travel_date ? new Date(booking.travel_date).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}) : '—'}*
 👥 Pax: *${(booking.adults||0)+(booking.children||0)+(booking.infants||0)} persons*
 
@@ -360,7 +361,7 @@ Balance Due: ₹${Number(booking.balance_amount||0).toLocaleString('en-IN')}
 Your detailed itinerary has been sent to your email. 📧
 
 For any queries, call/WhatsApp us anytime!
-*Shera Travels* | ${booking.company_phone || '+91-9149406965'}
+*${BRAND.name}* | ${booking.company_phone || BRAND.phone}
 _Let's Travel The World_ ✈️`
 
   return buildWhatsAppLink(booking.customer_whatsapp || booking.customer_phone, msg)
@@ -370,16 +371,16 @@ export function paymentReminderWA(booking) {
   const balance = Math.max(0, Number(booking.total_amount||0) - Number(booking.paid_amount||0))
   const msg = `Hi ${booking.customer_name}! 👋
 
-*Balance Payment Reminder — Shera Travels*
+*Balance Payment Reminder — ${BRAND.name}*
 📋 Booking Ref: *${booking.booking_ref}*
-📍 Trip: *${booking.destination || 'Kashmir'}*
+📍 Trip: *${booking.destination || 'Umrah'}*
 
 💰 Balance Due: *₹${balance.toLocaleString('en-IN')}*
 
 Kindly complete your payment before the travel date to confirm your bookings. 🙏
 
-Thank you for choosing Shera Travels!
-*${booking.company_phone || '+91-9149406965'}*`
+Thank you for choosing ${BRAND.name}!
+*${booking.company_phone || BRAND.phone}*`
 
   return buildWhatsAppLink(booking.customer_whatsapp || booking.customer_phone, msg)
 }

@@ -5,18 +5,26 @@ import { jsPDF } from 'jspdf'
 import { supabase } from '../lib/supabase'
 import toast from 'react-hot-toast'
 import { X, Download, Receipt } from 'lucide-react'
+import { BRAND } from '../lib/brand'
+import { amountInWords } from '../lib/ui'
 // Reference public/ asset by URL instead of importing (avoids base64-inlining
 // the logo into this chunk).
-const logoUrl = '/logo.png'
+const logoUrl = BRAND.logo
 
-const COMPANY = {
-  name: 'Shera Travels',
-  tagline: "Let's Travel The World",
-  phone1: '+91 91494 06965',
-  phone2: '+91 98589 66518',
-  email: 'info@sheratravels.com',
-  address: 'Radio Colony Lawaypora, Srinagar, Jammu & Kashmir – 190017',
-  gst: '01KODPS7232P1ZE',
+// Company details printed on invoices/receipts. Settings → Company Profile
+// (localStorage "company_defaults") overrides the brand defaults.
+function companyInfo() {
+  let saved = {}
+  try { saved = JSON.parse(localStorage.getItem('company_defaults') || '{}') } catch { saved = {} }
+  return {
+    name: (saved.name || BRAND.legalName).toUpperCase(),
+    phone: saved.phone || BRAND.phone,
+    email: saved.email || BRAND.email,
+    website: BRAND.website.replace(/^https?:\/\//, ''),
+    address: saved.addr || BRAND.address,
+    gst: saved.gst || BRAND.gst,
+    state: BRAND.state,
+  }
 }
 
 const GST_STATE_CODES = {
@@ -31,27 +39,28 @@ const GST_STATE_CODES = {
   '38': 'Ladakh',
 }
 
-const ITEM_PRESETS = ['Tour Package', 'Hotel Accommodation', 'Cab / Transport', 'Houseboat Stay', 'Other Services']
+const ITEM_PRESETS = ['Umrah Package', 'Hajj Package', 'Air Ticket', 'Umrah Visa', 'Hotel Accommodation', 'Ziyarat / Transport']
 
-const PAYMENT_MODES = ['Cash', 'UPI', 'Bank Transfer', 'Card', 'Cheque']
+const PAYMENT_MODES = ['UPI', 'Bank Transfer', 'Cash', 'Card', 'Cheque']
 
 function newItem(description = '') {
-  return { id: crypto.randomUUID(), description, hsn: '', qty: 1, rate: '', discount: '', cgst: '', sgst: '', igst: '' }
+  return { id: crypto.randomUUID(), description, details: '', passport: '', hsn: '', qty: 1, rate: '', discount: '', cgst: '', sgst: '', igst: '' }
 }
 
 function newPayment() {
-  return { id: crypto.randomUUID(), date: new Date().toISOString().slice(0, 10), amount: '', mode: 'Cash', reference: '' }
+  return { id: crypto.randomUUID(), date: new Date().toISOString().slice(0, 10), amount: '', mode: 'UPI', reference: '' }
 }
 
 function computeItem(item) {
   const qty = Number(item.qty) || 0
   const rate = Number(item.rate) || 0
   const discount = Number(item.discount) || 0
-  const taxable = Math.max(0, qty * rate - discount)
+  const gross = qty * rate
+  const taxable = Math.max(0, gross - discount)
   const cgstAmt = taxable * (Number(item.cgst) || 0) / 100
   const sgstAmt = taxable * (Number(item.sgst) || 0) / 100
   const igstAmt = taxable * (Number(item.igst) || 0) / 100
-  return { taxable, cgstAmt, sgstAmt, igstAmt, total: taxable + cgstAmt + sgstAmt + igstAmt }
+  return { gross, taxable, cgstAmt, sgstAmt, igstAmt, total: taxable + cgstAmt + sgstAmt + igstAmt }
 }
 
 const fmt = (n) => `₹${(Number(n) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
@@ -66,19 +75,23 @@ export default function InvoiceGenerator() {
   const [issueDate, setIssueDate] = useState(new Date().toISOString().slice(0, 10))
   const [dueDate, setDueDate] = useState('')
   const [status, setStatus] = useState('unpaid')
-  const [notes, setNotes] = useState('Advance payment is non-refundable. Balance due before trip start date.')
+  const [notes, setNotes] = useState('Thanks for doing business with us')
+  const [invoiceTitle, setInvoiceTitle] = useState('Hajj Umrah Package Booking')
+  const [bookingRefNo, setBookingRefNo] = useState('')
+  const company = companyInfo()
 
   const [client, setClient] = useState({ name: '', gstin: '', phone: '', address: '', stateCode: '' })
-  const [items, setItems] = useState([newItem('Tour Package')])
+  const [items, setItems] = useState([newItem('Umrah Package')])
   const [payments, setPayments] = useState([])
   const [draftPayment, setDraftPayment] = useState(newPayment())
   const [receipt, setReceipt] = useState(null) // payment currently being printed as a receipt
 
   useEffect(() => {
     if (!id) {
-      supabase.from('invoices').select('id').then(({ data }) => {
-        const next = (data?.length || 0) + 1
-        setInvoiceNumber(`INV-${new Date().getFullYear()}-${String(next).padStart(4, '0')}`)
+      // Sequential numeric invoice numbers (e.g. 163), continuing from the highest so far.
+      supabase.from('invoices').select('invoice_number').then(({ data }) => {
+        const max = (data || []).reduce((m, r) => Math.max(m, Number(String(r.invoice_number || '').replace(/\D/g, '').slice(-6)) || 0), 0)
+        setInvoiceNumber(String(max + 1))
       })
       return
     }
@@ -95,6 +108,8 @@ export default function InvoiceGenerator() {
       setDueDate(data.due_date || '')
       setStatus(data.status || 'unpaid')
       setNotes(data.notes || '')
+      setInvoiceTitle(data.invoice_title || 'Hajj Umrah Package Booking')
+      setBookingRefNo(data.booking_ref || '')
       setClient({
         name: data.client_name || '',
         gstin: data.client_gstin || '',
@@ -123,8 +138,17 @@ export default function InvoiceGenerator() {
 
   const computed = items.map(it => ({ ...it, ...computeItem(it) }))
   const subtotal = computed.reduce((s, it) => s + it.taxable, 0)
+  const grossTotal = computed.reduce((s, it) => s + it.gross, 0)
+  const discountTotal = computed.reduce((s, it) => s + (Number(it.discount) || 0), 0)
   const taxAmount = computed.reduce((s, it) => s + it.cgstAmt + it.sgstAmt + it.igstAmt, 0)
   const grandTotal = subtotal + taxAmount
+  const hasTax = taxAmount > 0
+  const pct = (part, whole) => `${whole ? +((Number(part) / whole) * 100).toFixed(3) : 0}%`
+  const fmtD = (d, sep = '-') => {
+    if (!d) return '—'
+    const x = new Date(d)
+    return [String(x.getDate()).padStart(2, '0'), String(x.getMonth() + 1).padStart(2, '0'), x.getFullYear()].join(sep)
+  }
 
   // ── Payments / balance ──────────────────────────────────────────────
   const amountPaid = payments.reduce((s, p) => s + (Number(p.amount) || 0), 0)
@@ -142,6 +166,7 @@ export default function InvoiceGenerator() {
     setDraftPayment(newPayment())
   }
   const removePayment = (pid) => setPayments(list => list.filter(p => p.id !== pid))
+  const lastPaymentDate = payments.reduce((d, p) => (!d || (p.date && p.date > d) ? p.date : d), '')
 
   const downloadReceipt = async (payment) => {
     setReceipt(payment)
@@ -186,6 +211,8 @@ export default function InvoiceGenerator() {
         due_date: dueDate || null,
         status: effectiveStatus,
         notes,
+        invoice_title: invoiceTitle,
+        booking_ref: bookingRefNo || null,
         items,
         payments,
         amount_paid: amountPaid,
@@ -296,6 +323,14 @@ export default function InvoiceGenerator() {
                 </select>
               </div>
             </div>
+            <div className="form-field">
+              <label>Invoice title</label>
+              <input className="glass-input" value={invoiceTitle} onChange={e => setInvoiceTitle(e.target.value)} />
+            </div>
+            <div className="form-field">
+              <label>Booking Reference No.</label>
+              <input className="glass-input" value={bookingRefNo} onChange={e => setBookingRefNo(e.target.value.toUpperCase())} placeholder="e.g. DH-EU-OCT2026-00163" />
+            </div>
             <div className="form-row">
               <div className="form-field">
                 <label>Issue Date</label>
@@ -327,8 +362,16 @@ export default function InvoiceGenerator() {
                   )}
                 </div>
                 <div className="form-field">
-                  <label>Description</label>
-                  <input className="glass-input" value={item.description} onChange={e => updateItem(item.id, { description: e.target.value })} placeholder="e.g. 5N/6D Kashmir Tour Package" />
+                  <label>Service name</label>
+                  <input className="glass-input" value={item.description} onChange={e => updateItem(item.id, { description: e.target.value })} placeholder="e.g. 15 Days Economy Umrah Package OCT 2026" />
+                </div>
+                <div className="form-field">
+                  <label>Package includes</label>
+                  <textarea className="glass-input" rows={2} value={item.details || ''} onChange={e => updateItem(item.id, { details: e.target.value })} placeholder="Return Air Ticket | Umrah Visa with Insurance | Accommodation ..." />
+                </div>
+                <div className="form-field">
+                  <label>Passport No.</label>
+                  <input className="glass-input" value={item.passport || ''} onChange={e => updateItem(item.id, { passport: e.target.value.toUpperCase() })} placeholder="e.g. T2089132" />
                 </div>
                 <div className="ig-item-grid">
                   <div className="form-field">
@@ -407,7 +450,7 @@ export default function InvoiceGenerator() {
               <div className="ig-item-grid" style={{ gridTemplateColumns: '1fr 1fr', marginTop: 0 }}>
                 <div className="form-field">
                   <label>Amount (₹)</label>
-                  <input className="glass-input" type="number" value={draftPayment.amount} onChange={e => setDraftPayment(d => ({ ...d, amount: e.target.value }))} placeholder="e.g. 20" />
+                  <input className="glass-input" type="number" value={draftPayment.amount} onChange={e => setDraftPayment(d => ({ ...d, amount: e.target.value }))} placeholder="e.g. 99900" />
                 </div>
                 <div className="form-field">
                   <label>Date</label>
@@ -421,7 +464,7 @@ export default function InvoiceGenerator() {
                 </div>
                 <div className="form-field">
                   <label>Reference / Note</label>
-                  <input className="glass-input" value={draftPayment.reference} onChange={e => setDraftPayment(d => ({ ...d, reference: e.target.value }))} placeholder="UPI ref, cheque no." />
+                  <input className="glass-input" value={draftPayment.reference} onChange={e => setDraftPayment(d => ({ ...d, reference: e.target.value }))} placeholder="e.g. IndusInd UPI T2609232259..." />
                 </div>
               </div>
               <button className="btn btn-ghost" style={{ width: '100%', marginTop: 10 }} onClick={addPayment}>+ Record Payment</button>
@@ -429,8 +472,9 @@ export default function InvoiceGenerator() {
           </div>
 
           <div className="glass-card ig-card">
-            <h3>Notes / Terms</h3>
-            <textarea className="glass-input" rows={4} value={notes} onChange={e => setNotes(e.target.value)} placeholder="Payment terms, cancellation policy, bank details..." />
+            <h3>Notes</h3>
+            <p className="muted" style={{ fontSize: 12, marginBottom: 8 }}>Standard terms and bank details are printed automatically.</p>
+            <textarea className="glass-input" rows={3} value={notes} onChange={e => setNotes(e.target.value)} placeholder="Extra note for this invoice" />
           </div>
         </div>
 
@@ -438,97 +482,119 @@ export default function InvoiceGenerator() {
         <div className="ig-preview-wrap">
           <div id="invoice-preview" className="ig-preview">
             <div className="ig-pv-header">
-              <div className="ig-pv-brand-block">
-                <div className="ig-pv-brand">
-                  <img src={logoUrl} alt="Shera Travels" className="ig-pv-logo" />
-                  <div>
-                    <h1>{COMPANY.name}</h1>
-                    <p className="ig-pv-tagline">{COMPANY.tagline}</p>
-                  </div>
-                </div>
-                <div className="ig-pv-contact-list">
-                  <p><strong>Address:</strong> {COMPANY.address}</p>
-                  <p><strong>Phone:</strong> {COMPANY.phone1}, {COMPANY.phone2}</p>
-                  <p><strong>Email:</strong> {COMPANY.email}</p>
-                  <p><strong>GSTIN:</strong> {COMPANY.gst}</p>
-                </div>
+              <div className="ig-pv-company">
+                <h1>{company.name}</h1>
+                <p>{company.address}</p>
+                <p>Phone no. : {company.phone}</p>
+                <p>Email : {company.email}{company.website ? ` · Web ${company.website}` : ''}</p>
+                {company.gst && <p>GSTIN : {company.gst}</p>}
+                <p>State: {company.state}</p>
               </div>
-              <div className="ig-pv-header-right">
-                <div className="ig-pv-badge">TAX INVOICE</div>
-                <div className="ig-pv-meta-list">
-                  <p><span>Invoice No:</span> <strong>{invoiceNumber || '—'}</strong></p>
-                  <p><span>Date:</span> <strong>{issueDate ? new Date(issueDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}</strong></p>
-                  {dueDate && (
-                    <p><span>Due Date:</span> <strong>{new Date(dueDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</strong></p>
-                  )}
-                </div>
-              </div>
+              <img src={logoUrl} alt={BRAND.legalName} className="ig-pv-logo" />
             </div>
 
-            <div className="ig-pv-billto">
-              <div className="ig-pv-label">Bill To</div>
-              <div className="ig-pv-bill-name">{client.name || 'Client Name'}</div>
-              {client.address && <div>{client.address}</div>}
-              {client.phone && <div>Ph: {client.phone}</div>}
-              {client.gstin && <div>GSTIN: {client.gstin}{GST_STATE_CODES[client.stateCode] ? ` (${GST_STATE_CODES[client.stateCode]})` : ''}</div>}
+            <h2 className="ig-pv-title">{invoiceTitle || 'Tax Invoice'}</h2>
+
+            <div className="ig-pv-parties">
+              <div>
+                <div className="ig-pv-label">Bill To</div>
+                <div className="ig-pv-bill-name">{client.name || 'Client Name'}</div>
+                {client.address && <div>{client.address}</div>}
+                {client.phone && <div>Ph: {client.phone}</div>}
+                {client.gstin && <div>GSTIN: {client.gstin}{GST_STATE_CODES[client.stateCode] ? ` (${GST_STATE_CODES[client.stateCode]})` : ''}</div>}
+              </div>
+              <div className="ig-pv-details">
+                <div className="ig-pv-label">Invoice Details</div>
+                <div>Invoice No. : {invoiceNumber || '—'}</div>
+                <div>Date : {fmtD(issueDate)}</div>
+                {bookingRefNo && <div>Booking Reference No.: {bookingRefNo}</div>}
+                {lastPaymentDate && <div>Payment Date: {fmtD(lastPaymentDate, '/')}</div>}
+                {dueDate && <div>Due Date : {fmtD(dueDate)}</div>}
+              </div>
             </div>
 
             <table className="ig-pv-table">
               <thead>
                 <tr>
-                  <th>Sn</th>
-                  <th>Description</th>
-                  <th>HSN</th>
-                  <th>Qty</th>
-                  <th>Rate</th>
-                  <th>Disc.</th>
-                  <th>CGST</th>
-                  <th>SGST</th>
-                  <th>IGST</th>
-                  <th>Amount</th>
+                  <th>#</th>
+                  <th>Service Name &amp; Description</th>
+                  <th>Passport No</th>
+                  <th className="num">Quantity</th>
+                  <th className="num">Price/ Unit</th>
+                  <th className="num">Discount</th>
+                  {hasTax && <th className="num">GST</th>}
+                  <th className="num">Amount</th>
                 </tr>
               </thead>
               <tbody>
                 {computed.map((it, i) => (
                   <tr key={it.id}>
                     <td>{i + 1}</td>
-                    <td>{it.description || '—'}</td>
-                    <td>{it.hsn || '—'}</td>
-                    <td>{it.qty || 0}</td>
-                    <td>{fmt(it.rate)}</td>
-                    <td>{fmt(it.discount)}</td>
-                    <td>{fmt(it.cgstAmt)}</td>
-                    <td>{fmt(it.sgstAmt)}</td>
-                    <td>{fmt(it.igstAmt)}</td>
-                    <td>{fmt(it.total)}</td>
+                    <td className="ig-pv-desc">
+                      <strong>{it.description || '—'}</strong>
+                      {it.details && <span>({it.details})</span>}
+                      {it.hsn && <span>HSN/SAC: {it.hsn}</span>}
+                    </td>
+                    <td>{it.passport || '—'}</td>
+                    <td className="num">{it.qty || 0}</td>
+                    <td className="num">{fmt(it.rate)}</td>
+                    <td className="num">
+                      {Number(it.discount) ? <>{fmt(it.discount)}<br /><small>({pct(it.discount, it.gross)})</small></> : '—'}
+                    </td>
+                    {hasTax && <td className="num">{fmt(it.cgstAmt + it.sgstAmt + it.igstAmt)}</td>}
+                    <td className="num">{fmt(it.total)}</td>
                   </tr>
                 ))}
               </tbody>
+              <tfoot>
+                <tr>
+                  <td />
+                  <td>Total</td>
+                  <td /><td /><td />
+                  <td className="num">{fmt(discountTotal)}</td>
+                  {hasTax && <td className="num">{fmt(taxAmount)}</td>}
+                  <td className="num">{fmt(grandTotal)}</td>
+                </tr>
+              </tfoot>
             </table>
 
-            <div className="ig-pv-totals">
-              <div className="ig-pv-totals-row"><span>Subtotal</span><span>{fmt(subtotal)}</span></div>
-              <div className="ig-pv-totals-row"><span>Total Tax</span><span>{fmt(taxAmount)}</span></div>
-              <div className="ig-pv-totals-row ig-pv-grand"><span>Grand Total</span><span>{fmt(grandTotal)}</span></div>
-              {amountPaid > 0 && (
-                <>
-                  <div className="ig-pv-totals-row" style={{ marginTop: 6 }}><span>Paid</span><span>{fmt(amountPaid)}</span></div>
-                  <div className="ig-pv-totals-row ig-pv-balance"><span>Balance Due</span><span>{fmt(balanceDue)}</span></div>
-                </>
-              )}
+            <div className="ig-pv-bottom">
+              <div className="ig-pv-left">
+                <div className="ig-pv-label">Invoice Amount In Words</div>
+                <p>{amountInWords(grandTotal)}</p>
+                <div className="ig-pv-label" style={{ marginTop: 14 }}>Terms and Conditions</div>
+                <ol>
+                  {BRAND.invoiceTerms.map(t => <li key={t}>{t}</li>)}
+                </ol>
+                {notes && <p className="ig-pv-note">{notes}</p>}
+              </div>
+              <div className="ig-pv-summary">
+                <div className="row"><span>Sub Total</span><span>{fmt(grossTotal)}</span></div>
+                {discountTotal > 0 && <div className="row"><span>Discount</span><span>{fmt(discountTotal)}</span></div>}
+                {hasTax && <div className="row"><span>GST</span><span>{fmt(taxAmount)}</span></div>}
+                <div className="row total"><span>Total</span><span>{fmt(grandTotal)}</span></div>
+                <div className="row"><span>Received</span><span>{fmt(amountPaid)}</span></div>
+                <div className="row"><span>Balance</span><span>{fmt(balanceDue)}</span></div>
+                {payments.length > 0 && (
+                  <div className="row mode"><span>Payment mode</span><span>{payments.map(p => `${p.mode}${p.reference ? ` (${p.reference})` : ''}`).join(', ')}</span></div>
+                )}
+                {discountTotal > 0 && <div className="row saved"><span>You Saved</span><span>{fmt(discountTotal)}</span></div>}
+              </div>
             </div>
 
-            {notes && (
-              <div className="ig-pv-notes">
-                <div className="ig-pv-label">Notes</div>
-                <p>{notes}</p>
+            <div className="ig-pv-foot">
+              <div className="ig-pv-bank">
+                <div className="ig-pv-label">Pay To:</div>
+                <div>Bank Name : {BRAND.bank.name}</div>
+                <div>Bank Account No. : {BRAND.bank.account}</div>
+                <div>Bank IFSC code : {BRAND.bank.ifsc}</div>
+                <div>Account holder's name : {BRAND.bank.holder.toUpperCase()}</div>
               </div>
-            )}
-
-            <div className="ig-pv-footer">
-              <p className="ig-pv-footer-gst">GSTIN: {COMPANY.gst} &nbsp;|&nbsp; {COMPANY.email} &nbsp;|&nbsp; {COMPANY.phone1}</p>
-              <p>{COMPANY.name} — {COMPANY.tagline}</p>
-              <p>This is a system-generated invoice.</p>
+              <div className="ig-pv-sign">
+                <div>For : {company.name}</div>
+                <div className="ig-pv-sign-space" />
+                <strong>Authorized Signatory</strong>
+              </div>
             </div>
           </div>
         </div>
@@ -539,19 +605,20 @@ export default function InvoiceGenerator() {
         <div style={{ position: 'fixed', left: -99999, top: 0, width: 794 }}>
           <div id="receipt-preview" className="rc-preview">
             <div className="rc-header">
-              <div className="rc-brand">
-                <img src={logoUrl} alt="Shera Travels" className="rc-logo" />
-                <div>
-                  <h1>{COMPANY.name}</h1>
-                  <p className="rc-tagline">{COMPANY.tagline}</p>
-                </div>
+              <div className="ig-pv-company">
+                <h1>{company.name}</h1>
+                <p>{company.address}</p>
+                <p>Phone no. : {company.phone} · Email : {company.email}</p>
+                {company.gst && <p>GSTIN : {company.gst} · State: {company.state}</p>}
               </div>
-              <div className="rc-badge">PAYMENT RECEIPT</div>
+              <img src={logoUrl} alt={BRAND.legalName} className="ig-pv-logo" />
             </div>
+            <h2 className="ig-pv-title">Payment Receipt</h2>
 
             <div className="rc-meta">
               <div>
                 <p><span>Receipt No:</span> <strong>RCPT-{invoiceNumber || '—'}</strong></p>
+                {bookingRefNo && <p><span>Booking Ref:</span> <strong>{bookingRefNo}</strong></p>}
                 <p><span>Against Invoice:</span> <strong>{invoiceNumber || '—'}</strong></p>
               </div>
               <div style={{ textAlign: 'right' }}>
@@ -578,13 +645,13 @@ export default function InvoiceGenerator() {
             <div className="rc-sign">
               <div className="rc-sign-line">
                 <div className="rc-sign-rule" />
-                <span>Authorised Signatory</span>
+                <span>For {company.name}<br /><strong>Authorized Signatory</strong></span>
               </div>
             </div>
 
             <div className="rc-footer">
-              <p className="rc-footer-strong">GSTIN: {COMPANY.gst} &nbsp;|&nbsp; {COMPANY.email} &nbsp;|&nbsp; {COMPANY.phone1}</p>
-              <p>{COMPANY.name} — {COMPANY.tagline}</p>
+              <p className="rc-footer-strong">{company.name}</p>
+              <p>{company.phone} · {company.email}{company.website ? ` · ${company.website}` : ''}</p>
               <p>This is a system-generated payment receipt.</p>
             </div>
           </div>
@@ -678,7 +745,7 @@ export default function InvoiceGenerator() {
         /* ── Receipt template (off-screen, captured to PDF) ── */
         .rc-preview {
           background: #fff;
-          padding: 40px;
+          padding: 36px;
           color: #1a1a1a;
           font-family: inherit;
           width: 794px;
@@ -691,9 +758,8 @@ export default function InvoiceGenerator() {
           border-bottom: 2px solid #E2E8F0;
           margin-bottom: 24px;
         }
-        .rc-brand { display: flex; align-items: center; gap: 14px; }
-        .rc-logo { width: 60px; height: 60px; object-fit: contain; }
-        .rc-brand h1 { font-size: 24px; font-weight: 900; color: #0EA5E9; text-transform: uppercase; letter-spacing: 0.4px; }
+
+        .rc-brand h1 { font-size: 24px; font-weight: 900; color: #0D2A7D; text-transform: uppercase; letter-spacing: 0.4px; }
         .rc-tagline { font-size: 12px; font-style: italic; color: #64748B; margin-top: 2px; }
         .rc-badge {
           background: #059669;
@@ -714,14 +780,14 @@ export default function InvoiceGenerator() {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          background: #ECFDF5;
-          border: 1px solid #A7F3D0;
+          background: #EEF2FB;
+          border: 1px solid #C3CEEC;
           border-radius: 10px;
           padding: 16px 20px;
           margin: 12px 0;
         }
-        .rc-amount-box span { font-size: 12px; font-weight: 700; text-transform: uppercase; color: #065F46; }
-        .rc-amount-box strong { font-size: 26px; font-weight: 900; color: #047857; }
+        .rc-amount-box span { font-size: 12px; font-weight: 700; text-transform: uppercase; color: #0D2A7D; }
+        .rc-amount-box strong { font-size: 26px; font-weight: 800; color: #0D2A7D; }
         .rc-ref { font-size: 12.5px; color: #475569; }
         .rc-summary { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; margin-bottom: 40px; }
         .rc-summary-row { display: flex; justify-content: space-between; gap: 40px; width: 280px; font-size: 13px; }
@@ -733,87 +799,69 @@ export default function InvoiceGenerator() {
         .rc-footer { padding-top: 14px; text-align: center; border-top: 1px solid #E2E8F0; font-size: 10.5px; color: #94A3B8; line-height: 1.8; }
         .rc-footer-strong { font-weight: 700; color: #1a1a1a; font-size: 11px; }
 
-        .ig-preview-wrap { position: sticky; top: 20px; }
+        .ig-preview-wrap { position: sticky; top: calc(var(--header-h) + 16px); }
         .ig-preview {
           background: #fff;
           border-radius: 12px;
           box-shadow: 0 4px 24px rgba(0,0,0,0.08);
-          padding: 36px;
-          color: #1a1a1a;
+          padding: 34px 36px;
+          color: #111;
           display: flex;
           flex-direction: column;
           min-height: 1050px;
+          font-size: 12px;
+          line-height: 1.5;
         }
-        .ig-pv-header {
+        .ig-pv-header, .rc-header {
           display: flex;
           justify-content: space-between;
-          align-items: flex-start;
+          align-items: center;
           gap: 24px;
-          margin-bottom: 24px;
-          padding-bottom: 20px;
-          border-bottom: 2px solid #E2E8F0;
+          padding-bottom: 12px;
+          border-bottom: 2px solid #0D2A7D;
+          margin-bottom: 14px;
         }
-        .ig-pv-brand-block { display: flex; flex-direction: column; gap: 14px; }
-        .ig-pv-brand { display: flex; align-items: center; gap: 14px; }
-        .ig-pv-logo { width: 60px; height: 60px; object-fit: contain; flex-shrink: 0; }
-        .ig-pv-brand h1 { font-size: 26px; font-weight: 900; letter-spacing: 0.4px; color: #0EA5E9; text-transform: uppercase; }
-        .ig-pv-tagline { font-size: 12px; font-style: italic; color: #64748B; margin-top: 2px; }
-        .ig-pv-contact-list { font-size: 11.5px; color: #475569; line-height: 1.9; }
-        .ig-pv-contact-list p { margin: 0; }
-        .ig-pv-contact-list strong { color: #1a1a1a; font-weight: 700; }
-        .ig-pv-header-right { display: flex; flex-direction: column; align-items: flex-end; gap: 16px; flex-shrink: 0; }
-        .ig-pv-badge {
-          background: #0EA5E9;
-          color: #fff;
-          font-weight: 800;
-          font-size: 15px;
-          padding: 12px 26px;
-          border-radius: 8px;
-          letter-spacing: 1.5px;
-          white-space: nowrap;
-        }
-        .ig-pv-meta-list { text-align: right; font-size: 12px; color: #475569; line-height: 2; }
-        .ig-pv-meta-list p { margin: 0; }
-        .ig-pv-meta-list span { color: #94A3B8; margin-right: 6px; }
-        .ig-pv-meta-list strong { color: #1a1a1a; font-weight: 700; }
-        .ig-pv-billto {
-          background: #F8FAFC;
-          border: 1px solid #E2E8F0;
-          border-radius: 8px;
-          padding: 12px 16px;
-          margin-bottom: 18px;
-          font-size: 12.5px;
-          line-height: 1.6;
-        }
-        .ig-pv-bill-name { font-size: 14px; font-weight: 800; margin-bottom: 2px; }
-        .ig-pv-label { font-size: 10px; font-weight: 700; text-transform: uppercase; color: #94A3B8; letter-spacing: 0.4px; margin-bottom: 2px; }
+        .ig-pv-company h1 { font-size: 17px; font-weight: 700; letter-spacing: 0.2px; color: #111; margin-bottom: 4px; max-width: 360px; line-height: 1.3; }
+        .ig-pv-company p { margin: 0; font-size: 11.5px; color: #222; max-width: 380px; }
+        .ig-pv-logo { width: 210px; height: auto; object-fit: contain; flex-shrink: 0; }
+        .ig-pv-title { text-align: center; font-size: 20px; font-weight: 700; color: #0D2A7D; margin: 4px 0 16px; }
+        .ig-pv-parties { display: flex; justify-content: space-between; gap: 24px; margin-bottom: 12px; font-size: 12px; }
+        .ig-pv-details { text-align: right; }
+        .ig-pv-label { font-size: 12px; font-weight: 700; color: #111; margin-bottom: 4px; }
+        .ig-pv-bill-name { font-size: 13px; font-weight: 700; text-transform: uppercase; margin-bottom: 2px; }
 
-        .ig-pv-table { width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 16px; }
+        .ig-pv-table { width: 100%; border-collapse: collapse; font-size: 11.5px; margin-bottom: 18px; }
         .ig-pv-table th {
-          background: #0F172A;
+          background: #0D2A7D;
           color: #fff;
           text-align: left;
           padding: 8px 8px;
-          font-weight: 700;
-          white-space: nowrap;
+          font-weight: 600;
+          vertical-align: middle;
         }
-        .ig-pv-table td {
-          padding: 8px 8px;
-          border-bottom: 1px solid #E2E8F0;
-          white-space: nowrap;
-        }
-        .ig-pv-table td:nth-child(2) { white-space: normal; min-width: 140px; }
+        .ig-pv-table td { padding: 10px 8px; border-bottom: 1px solid #CBD5E1; vertical-align: middle; }
+        .ig-pv-table .num { text-align: right; white-space: nowrap; }
+        .ig-pv-table small { font-size: 10.5px; color: #333; }
+        .ig-pv-desc { min-width: 170px; max-width: 220px; }
+        .ig-pv-desc strong { display: block; font-size: 12.5px; margin-bottom: 2px; }
+        .ig-pv-desc span { display: block; font-size: 10.5px; color: #222; line-height: 1.35; }
+        .ig-pv-table tfoot td { font-weight: 700; border-top: 1px solid #111; border-bottom: 1px solid #111; padding: 8px; }
 
-        .ig-pv-totals { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; margin-bottom: 20px; }
-        .ig-pv-totals-row { display: flex; justify-content: space-between; gap: 40px; font-size: 12.5px; width: 240px; }
-        .ig-pv-grand { font-size: 16px; font-weight: 800; border-top: 2px solid #0F172A; padding-top: 8px; margin-top: 4px; color: #0EA5E9; }
-        .ig-pv-balance { font-size: 14px; font-weight: 800; color: #B45309; border-top: 1px dashed #CBD5E1; padding-top: 6px; }
+        .ig-pv-bottom { display: grid; grid-template-columns: 1fr 300px; gap: 28px; margin-bottom: 22px; }
+        .ig-pv-left p { margin: 0 0 4px; }
+        .ig-pv-left ol { padding-left: 16px; margin: 0; }
+        .ig-pv-left li { margin-bottom: 3px; }
+        .ig-pv-note { margin-top: 8px !important; }
+        .ig-pv-summary .row { display: flex; justify-content: space-between; gap: 16px; padding: 6px 8px; font-size: 12px; }
+        .ig-pv-summary .row span:last-child { text-align: right; }
+        .ig-pv-summary .row.total { background: #0D2A7D; color: #fff; font-weight: 700; }
+        .ig-pv-summary .row.mode span:last-child { font-size: 11px; max-width: 190px; }
+        .ig-pv-summary .row.saved { border-top: 1px solid #111; margin-top: 6px; padding-top: 10px; }
 
-        .ig-pv-notes { font-size: 11.5px; color: #475569; margin-bottom: 16px; }
-        .ig-pv-notes p { margin-top: 4px; white-space: pre-wrap; }
-
-        .ig-pv-footer { margin-top: auto; padding-top: 14px; text-align: center; border-top: 1px solid #E2E8F0; font-size: 10.5px; color: #94A3B8; }
-        .ig-pv-footer-gst { font-weight: 700; color: #1a1a1a; font-size: 11px; margin-bottom: 4px; }
+        .ig-pv-foot { display: flex; justify-content: space-between; gap: 24px; margin-top: auto; padding-top: 18px; font-size: 12px; }
+        .ig-pv-bank div { margin-bottom: 3px; }
+        .ig-pv-sign { text-align: center; min-width: 260px; display: flex; flex-direction: column; align-items: center; }
+        .ig-pv-sign-space { height: 56px; width: 200px; border-bottom: 1px solid #94A3B8; margin: 8px 0 6px; }
 
         @media (max-width: 1100px) {
           .ig-grid { grid-template-columns: 1fr; }
@@ -823,14 +871,13 @@ export default function InvoiceGenerator() {
           .ig-header { flex-direction: column; align-items: flex-start; }
           .ig-header .btn { width: 100%; justify-content: center; }
           .ig-item-grid { grid-template-columns: 1fr 1fr; }
-          .ig-preview { padding: 18px; min-height: 0; }
-          .ig-pv-logo { width: 40px; height: 40px; }
-          .ig-pv-brand { gap: 8px; }
-          .ig-pv-brand h1 { font-size: 16px; }
-          .ig-pv-tagline { font-size: 9px; }
-          .ig-pv-contact-list { font-size: 9.5px; line-height: 1.7; }
-          .ig-pv-badge { font-size: 10px; padding: 6px 10px; letter-spacing: 0.8px; }
-          .ig-pv-meta-list { font-size: 10px; }
+          .ig-preview { padding: 16px; min-height: 0; font-size: 10px; }
+          .ig-pv-logo { width: 110px; }
+          .ig-pv-company h1 { font-size: 12px; }
+          .ig-pv-company p { font-size: 9px; }
+          .ig-pv-bottom { grid-template-columns: 1fr; }
+          .ig-pv-foot { flex-direction: column; }
+          .ig-preview-wrap { overflow-x: auto; }
         }
       `}</style>
     </div>

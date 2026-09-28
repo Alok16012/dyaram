@@ -90,9 +90,9 @@ export default function Itinerary() {
   }, [packages])
 
   // Same fallback the table cell uses, so the filter matches what's displayed.
-  const placeOf = (p) => p.start_location || 'Kashmir'
+  const placeOf = (p) => p.start_location || 'Makkah & Madinah'
   // Tidy the display label: single spaces, no space before punctuation.
-  const cleanPlace = (s) => (s || 'Kashmir').replace(/\s+/g, ' ').replace(/\s+([,.])/g, '$1').trim()
+  const cleanPlace = (s) => (s || 'Makkah & Madinah').replace(/\s+/g, ' ').replace(/\s+([,.])/g, '$1').trim()
   // The match key ignores case AND punctuation/spacing, so "JAMMU", "Jammu ,"
   // and "Jammu," all collapse into one option. Filtering compares on this key.
   const normPlace = (s) => cleanPlace(s).toLowerCase().replace(/[^a-z0-9]+/g, '')
@@ -264,7 +264,7 @@ export default function Itinerary() {
                       </div>
                     </td>
                     <td style={{ whiteSpace: 'nowrap' }}>{pkg.nights}N / {pkg.days}D</td>
-                    <td style={{ whiteSpace: 'nowrap' }}>{pkg.start_location || 'Kashmir'}</td>
+                    <td style={{ whiteSpace: 'nowrap' }}>{pkg.start_location || 'Makkah & Madinah'}</td>
                     <td>
                       <select
                         className="glass-input"

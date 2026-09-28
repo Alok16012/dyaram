@@ -2,9 +2,11 @@ import { useState } from 'react'
 import html2canvas from 'html2canvas'
 import { jsPDF } from 'jspdf'
 import toast from 'react-hot-toast'
+import { BRAND } from '../lib/brand'
+import { Download, Printer, MessageCircle, X, Loader2 } from 'lucide-react'
 // public/ assets are served by URL — importing them base64-inlines the file
 // into the JS bundle, so reference by path instead to keep the chunk small.
-const logoUrl = '/logo.png'
+const logoUrl = BRAND.logo
 
 export default function PreviewModal({ open, onClose, onPrint, pkg, prices, days }) {
   const [sharing, setSharing] = useState(false)
@@ -106,11 +108,11 @@ export default function PreviewModal({ open, onClose, onPrint, pkg, prices, days
   const savedCompany = JSON.parse(localStorage.getItem('company_defaults') || '{}')
 
   const co = {
-    name: pkg?.company_name || savedCompany.name || 'Shera Travels',
+    name: pkg?.company_name || savedCompany.name || BRAND.legalName,
     addr: pkg?.company_addr || savedCompany.addr || '',
     email: pkg?.company_email || savedCompany.email || '',
     phone: pkg?.company_phone || savedCompany.phone || '',
-    gst: pkg?.company_gst || savedCompany.gst || '01KODPS7232P1ZE',
+    gst: pkg?.company_gst || savedCompany.gst || BRAND.gst,
   }
 
   // Unique hotels
@@ -130,29 +132,21 @@ export default function PreviewModal({ open, onClose, onPrint, pkg, prices, days
   return (
     <div className="preview-overlay open">
       <div className="preview-close-bar">
-        <button
-          className="close-preview-btn"
-          onClick={downloadPdf}
-          disabled={sharing}
-          style={{ background: '#10B981', color: '#fff', borderColor: '#10B981', opacity: sharing ? 0.6 : 1 }}>
-          {sharing ? '⏳ Generating...' : '📥 Download PDF'}
+        <button className="pv-action primary" onClick={downloadPdf} disabled={sharing}>
+          {sharing ? <Loader2 size={16} /> : <Download size={16} />} {sharing ? 'Generating…' : 'Download PDF'}
         </button>
-        <button className="close-preview-btn" onClick={onPrint}>🖨️ Print</button>
-        <button
-          className="close-preview-btn"
-          onClick={sharePdfOnWhatsApp}
-          disabled={sharing}
-          style={{ background: 'rgba(37,211,102,0.15)', borderColor: 'rgba(37,211,102,0.4)', color: '#25D366', opacity: sharing ? 0.6 : 1 }}>
-          💬 WhatsApp
+        <button className="pv-action" onClick={onPrint}><Printer size={16} /> Print</button>
+        <button className="pv-action whatsapp" onClick={sharePdfOnWhatsApp} disabled={sharing}>
+          <MessageCircle size={16} /> WhatsApp
         </button>
-        <button className="close-preview-btn" onClick={onClose}>✕</button>
+        <button className="pv-action icon" onClick={onClose} aria-label="Close preview"><X size={18} /></button>
       </div>
 
       <div className="preview-doc" id="preview-doc">
         {/* HEADER */}
         <div className="pv-header">
           <div className="pv-logo-area">
-            <div className="pv-logo-icon" style={{ background: 'transparent', border: 'none' }}>
+            <div className="pv-logo-icon" style={{ background: 'transparent', border: 'none', width: 170, height: 70, flexShrink: 0 }}>
               <img src={logoUrl} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
             </div>
             <div className="pv-company">
@@ -169,7 +163,7 @@ export default function PreviewModal({ open, onClose, onPrint, pkg, prices, days
 
         {/* CLIENT INFO */}
         {pkg?.client_name && (
-          <div style={{ background: '#ECFDF5', border: '1px solid #A7F3D0', borderRadius: 8, padding: '12px 16px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ background: '#EEF2FB', border: '1px solid #C3CEEC', borderRadius: 8, padding: '12px 16px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 10 }}>
             <span style={{ fontSize: 18 }}>👤</span>
             <div>
               <div style={{ fontSize: 10, fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: 0.5 }}>Prepared For</div>
@@ -180,12 +174,12 @@ export default function PreviewModal({ open, onClose, onPrint, pkg, prices, days
 
         {/* HERO */}
         <div className="pv-hero">
-          <img src={heroSrc} alt="Kashmir" />
+          <img src={heroSrc} alt={pkg?.title || 'Package'} />
           <div className="pv-hero-overlay" />
           <div className="pv-hero-text">
-            <h2>{pkg?.title || 'Kashmir Tour Package'}</h2>
+            <h2>{pkg?.title || 'Umrah Package'}</h2>
             <div className="pv-hero-meta">
-              <span>📍 {pkg?.start_location || 'Kashmir, India'}</span>
+              <span>📍 {pkg?.start_location || 'Makkah & Madinah'}</span>
               <span>🌙 {pkg?.nights || 5} Nights / {pkg?.days || 6} Days</span>
             </div>
             <div className="pv-badges">
@@ -210,7 +204,7 @@ export default function PreviewModal({ open, onClose, onPrint, pkg, prices, days
                   <div className="pv-hotel-body">
                     <div className="pv-hotel-name">{h.name}</div>
                     <div className="pv-stars">{'★'.repeat(h.star)}{'☆'.repeat(5 - h.star)}</div>
-                    <div className="pv-hotel-meta"><span>📍 Kashmir</span></div>
+                    <div className="pv-hotel-meta"><span>📍 {h.location || 'Saudi Arabia'}</span></div>
                   </div>
                 </div>
               ))}
@@ -378,7 +372,7 @@ export default function PreviewModal({ open, onClose, onPrint, pkg, prices, days
           <p>{co.addr} &nbsp;|&nbsp; {co.email} &nbsp;|&nbsp; {co.phone}</p>
           {co.gst && <p style={{ marginTop: 4, fontWeight: 700 }}>GSTIN: {co.gst}</p>}
           <p style={{ marginTop: 6, fontSize: 11, opacity: 0.7 }}>
-            Shera Travels — Discover Kashmir With Us
+            {BRAND.name} — {BRAND.slogan}
           </p>
         </div>
       </div>

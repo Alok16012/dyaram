@@ -1,3 +1,4 @@
+import { BRAND } from './brand'
 // ── Razorpay Standard Checkout Helper ─────────────────────
 // Key ID is public — safe to use client-side
 const RAZORPAY_KEY = import.meta.env.VITE_RAZORPAY_KEY_ID || ''
@@ -31,9 +32,9 @@ export async function openRazorpayCheckout({ amount, booking, onSuccess, onFailu
       key:         RAZORPAY_KEY,
       amount:      Math.round(amount * 100), // paise
       currency:    'INR',
-      name:        booking.company_name || 'Shera Travels',
+      name:        booking.company_name || BRAND.name,
       description: `${booking.destination || 'Tour'} — ${booking.booking_ref}`,
-      image:       '/logo.png',
+      image:       BRAND.mark,
       prefill: {
         name:    booking.customer_name  || '',
         email:   booking.customer_email || '',

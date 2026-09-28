@@ -2,6 +2,7 @@ import { createContext, useContext, useReducer, useCallback, useRef } from 'reac
 import { supabase, isConfigured } from '../lib/supabase'
 import { sendNewBookingEmail, sendReceiptEmail } from '../lib/email'
 import toast from 'react-hot-toast'
+import { bookingRef } from '../lib/brand'
 
 const BookingContext = createContext(null)
 
@@ -15,11 +16,15 @@ export const BOOKING_STATUSES = [
   { id: 'cancelled',     label: 'Cancelled',     color: '#EF4444', bg: '#FEE2E2',  emoji: '❌' },
 ]
 
-// ── Booking ref generator ─────────────────────────────────
-function genRef() {
-  const yr  = new Date().getFullYear()
-  const num = String(Math.floor(Math.random() * 9000) + 1000)
-  return `ST-${yr}-${num}`
+// ── Booking ref generator (e.g. DH-EU-OCT2026-00163) ─────
+// The trailing number continues the sequence of existing bookings.
+async function genRef(data) {
+  const { data: rows } = await supabase.from('bookings').select('booking_ref')
+  const last = (rows || []).reduce((m, r) => {
+    const n = Number((String(r.booking_ref || '').match(/(\d+)$/) || [])[1])
+    return n && n < 1e6 ? Math.max(m, n) : m
+  }, 0)
+  return bookingRef({ destination: data.destination, travelDate: data.travel_date, seq: last + 1 })
 }
 
 function warnUnconfigured() {
@@ -112,7 +117,7 @@ export function BookingProvider({ children }) {
     const advance = Math.round((formData.total_amount * (formData.advance_percent || 20)) / 100)
     const row = {
       ...formData,
-      booking_ref: genRef(),
+      booking_ref: await genRef(formData),
       advance_amount: advance,
       balance_amount: formData.total_amount - advance,
       paid_amount: 0,
@@ -217,7 +222,7 @@ export function BookingProvider({ children }) {
       await updateBooking(bookingId, { paid_amount: newPaid, status: newStatus })
       toast.success(`₹${Number(paymentData.amount).toLocaleString('en-IN')} payment recorded!`)
 
-      // Auto-send receipt to customer + sheratravels21@gmail.com
+      // Auto-send receipt to customer + admin
       const newBalance    = Math.max(0, Number(booking.total_amount || 0) - newPaid)
       const updatedBooking = { ...booking, paid_amount: newPaid }
       sendReceiptEmail(updatedBooking, Number(paymentData.amount), newPaid, newBalance, payRow)

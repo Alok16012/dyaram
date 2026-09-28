@@ -206,8 +206,8 @@ export default function Income() {
               <YAxis tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: '#64748B' }} tickFormatter={inrShort} width={48} />
               <Tooltip formatter={(v) => inr(v)} cursor={{ fill: '#F4F6F9' }} contentStyle={{ borderRadius: 8, border: '1px solid #EAEEF3', fontSize: 12 }} />
               <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12 }} />
-              <Bar dataKey="Income" fill="#12A15A" radius={[4, 4, 0, 0]} maxBarSize={28} />
-              <Bar dataKey="Expenses" fill="#F5A623" radius={[4, 4, 0, 0]} maxBarSize={28} />
+              <Bar dataKey="Income" fill="#0D2A7D" radius={[4, 4, 0, 0]} maxBarSize={28} />
+              <Bar dataKey="Expenses" fill="#D90A0A" radius={[4, 4, 0, 0]} maxBarSize={28} />
             </BarChart>
           </ResponsiveContainer>
         </div>

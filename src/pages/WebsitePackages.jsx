@@ -2,11 +2,12 @@ import { useState, useEffect } from 'react'
 import { supabase, isConfigured, uploadPhoto } from '../lib/supabase'
 import toast from 'react-hot-toast'
 import { X, Image as ImageIcon, Upload, ExternalLink, Package, Pencil, Trash2 } from 'lucide-react'
+import { BRAND } from '../lib/brand'
 
-const SITE_URL = 'https://sheratravelsxr.com'
+const SITE_URL = BRAND.website
 
 const DIFFICULTIES = ['Easy', 'Moderate', 'Challenging']
-const CATEGORIES = ['Kashmir', 'Mountains', 'Pilgrimage', 'Honeymoon', 'Budget']
+const CATEGORIES = ['Umrah', 'Hajj', 'Ramadan Umrah', 'Ziyarat Tours', 'Budget']
 
 const clone = (o) => JSON.parse(JSON.stringify(o))
 const slugify = (s) =>
@@ -24,7 +25,7 @@ const blankPackage = (nextId) => ({
   slug: '',
   title: '',
   location: '',
-  state: 'Jammu & Kashmir',
+  state: 'Saudi Arabia',
   image: '',
   gallery: [],
   price: 9999,
@@ -39,7 +40,7 @@ const blankPackage = (nextId) => ({
   dates: [],
   difficulty: 'Easy',
   badge: '',
-  category: 'Kashmir',
+  category: 'Umrah',
   overview: '',
   highlights: [],
   itinerary: [],
@@ -183,13 +184,13 @@ export default function WebsitePackages() {
         </div>
 
         <Section title="Basics">
-          <Field label="Title *" value={draft.title} onChange={v => setField('title', v)} placeholder="Magnificent Kashmir – 6 Days in Paradise" />
+          <Field label="Title *" value={draft.title} onChange={v => setField('title', v)} placeholder="Premium Umrah – 15 Days near Haram" />
           <div style={{ display: 'flex', gap: 12 }}>
-            <Field label="URL slug (auto if blank)" value={draft.slug} onChange={v => setField('slug', v)} placeholder="magnificent-kashmir" style={{ flex: 1 }} />
+            <Field label="URL slug (auto if blank)" value={draft.slug} onChange={v => setField('slug', v)} placeholder="premium-umrah-15-days" style={{ flex: 1 }} />
             <Field label="Category" value={draft.category} onChange={v => setField('category', v)} style={{ flex: '0 0 180px' }} />
           </div>
           <div style={{ display: 'flex', gap: 12 }}>
-            <Field label="Location" value={draft.location} onChange={v => setField('location', v)} placeholder="Srinagar, Kashmir" style={{ flex: 1 }} />
+            <Field label="Location" value={draft.location} onChange={v => setField('location', v)} placeholder="Makkah & Madinah" style={{ flex: 1 }} />
             <Field label="State" value={draft.state} onChange={v => setField('state', v)} style={{ flex: 1 }} />
           </div>
           <div style={{ display: 'flex', gap: 12 }}>
@@ -262,9 +263,9 @@ export default function WebsitePackages() {
         </Section>
 
         <Section title="Highlights & Inclusions">
-          <ListEditor label="Trip highlights" items={draft.highlights} onChange={v => setField('highlights', v)} placeholder="Gulmarg gondola ride" addLabel="Add highlight" />
+          <ListEditor label="Trip highlights" items={draft.highlights} onChange={v => setField('highlights', v)} placeholder="Hotel within 300 m of Haram" addLabel="Add highlight" />
           <ListEditor label="What's included" items={draft.inclusions} onChange={v => setField('inclusions', v)} placeholder="5 nights accommodation" addLabel="Add inclusion" />
-          <ListEditor label="What's NOT included" items={draft.exclusions} onChange={v => setField('exclusions', v)} placeholder="Airfare to Srinagar" addLabel="Add exclusion" />
+          <ListEditor label="What's NOT included" items={draft.exclusions} onChange={v => setField('exclusions', v)} placeholder="Qurbani" addLabel="Add exclusion" />
         </Section>
 
         <Section title="Day-by-day Itinerary">
@@ -295,7 +296,7 @@ export default function WebsitePackages() {
         </Section>
 
         <Section title="Extra info">
-          <ListEditor label="Important notes" items={draft.importantNotes} onChange={v => setField('importantNotes', v)} placeholder="Kashmir is safe and welcoming…" addLabel="Add note" />
+          <ListEditor label="Important notes" items={draft.importantNotes} onChange={v => setField('importantNotes', v)} placeholder="Passport must be valid for 6 months…" addLabel="Add note" />
           <ListEditor label="Things to carry" items={draft.thingsToCarry} onChange={v => setField('thingsToCarry', v)} placeholder="Valid government ID (mandatory)" addLabel="Add item" />
         </Section>
 
@@ -323,7 +324,7 @@ export default function WebsitePackages() {
           </p>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <a className="btn btn-ghost" href={`${SITE_URL}/trips`} target="_blank" rel="noreferrer" style={{ whiteSpace: 'nowrap' }}><ExternalLink size={15} /> View live</a>
+          {SITE_URL && <a className="btn btn-ghost" href={`${SITE_URL}/trips`} target="_blank" rel="noreferrer" style={{ whiteSpace: 'nowrap' }}><ExternalLink size={15} /> View live</a>}
           <button className="btn btn-primary" onClick={startAdd}>+ New Package</button>
         </div>
       </div>

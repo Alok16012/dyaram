@@ -132,7 +132,7 @@
   gap: 10px;
   padding: 13px 12px;
   background: var(--primary-soft);
-  border: 1px solid #DDF0E5;
+  border: 1px solid #DCE3F4;
   border-radius: 8px;
   color: var(--primary);
   cursor: pointer;
@@ -142,7 +142,7 @@
 }
 .qa-btn span { font-size: 12px; color: var(--text-body); line-height: 1.25; }
 .qa-btn svg { flex-shrink: 0; }
-.qa-btn:hover { background: var(--primary-light); border-color: #BFE5CF; }
+.qa-btn:hover { background: var(--primary-light); border-color: #C3CEEC; }
 
 /* Recent leads */
 .lead-list { list-style: none; display: flex; flex-direction: column; }
@@ -164,8 +164,8 @@
   position: relative;
   overflow: hidden;
   border-radius: var(--radius);
-  border: 1px solid #DDF0E5;
-  background: linear-gradient(135deg, #F2FBF6 0%, #E4F5EB 100%);
+  border: 1px solid #DCE3F4;
+  background: linear-gradient(135deg, #F5F7FD 0%, #E6ECF8 100%);
   padding: 20px;
   min-height: 170px;
 }

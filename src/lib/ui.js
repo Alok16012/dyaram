@@ -67,3 +67,31 @@ export const avatarTone = (name = '') => {
   const [color, background] = AVATAR_TONES[h % AVATAR_TONES.length]
   return { color, background }
 }
+
+// 320000 → "Three Lakh Twenty Thousand Rupees only" (Indian numbering)
+export function amountInWords(amount) {
+  const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten',
+    'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen']
+  const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety']
+  const two = (n) => (n < 20 ? ones[n] : `${tens[Math.floor(n / 10)]}${n % 10 ? ` ${ones[n % 10]}` : ''}`)
+  const three = (n) => {
+    const h = Math.floor(n / 100), r = n % 100
+    return [h ? `${ones[h]} Hundred` : '', r ? two(r) : ''].filter(Boolean).join(' ')
+  }
+  const words = (n) => {
+    if (n === 0) return 'Zero'
+    const parts = []
+    const crore = Math.floor(n / 1e7); n %= 1e7
+    const lakh = Math.floor(n / 1e5); n %= 1e5
+    const thousand = Math.floor(n / 1e3); n %= 1e3
+    if (crore) parts.push(`${words(crore)} Crore`)
+    if (lakh) parts.push(`${two(lakh)} Lakh`)
+    if (thousand) parts.push(`${two(thousand)} Thousand`)
+    if (n) parts.push(three(n))
+    return parts.join(' ')
+  }
+  const total = Math.max(0, Number(amount) || 0)
+  const rupees = Math.floor(total)
+  const paise = Math.round((total - rupees) * 100)
+  return `${words(rupees)} Rupees${paise ? ` and ${two(paise)} Paise` : ''} only`
+}

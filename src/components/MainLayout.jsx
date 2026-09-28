@@ -12,6 +12,7 @@ import { isDemo } from '../lib/supabase'
 import { useCRM } from '../context/CRMContext'
 import { useBooking } from '../context/BookingContext'
 import BrandMark from './BrandMark'
+import { BRAND } from '../lib/brand'
 
 const COLLAPSE_KEY = 'sidebar_collapsed'
 
@@ -274,15 +275,11 @@ export default function MainLayout({ children, headerActions }) {
 
       <aside className={`sidebar-nav ${sidebarOpen ? 'open' : ''}`}>
         <div className="sidebar-top">
-          <NavLink to="/" className="brand" onClick={() => setSidebarOpen(false)}>
-            <BrandMark className="brand-mark" />
-            <div className="brand-text">
-              <span className="brand-name">Shera Travels</span>
-              <span className="brand-tagline">TRAVEL &amp; TOURS</span>
-            </div>
+          <NavLink to="/" className="brand" onClick={() => setSidebarOpen(false)} title={BRAND.legalName}>
+            <BrandMark className="brand-logo-full" variant="full" size={62} />
           </NavLink>
           <button className="sidebar-toggle" onClick={toggleCollapsed} title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}>
-            <Menu size={20} />
+            {collapsed ? <BrandMark size={40} /> : <Menu size={20} />}
           </button>
         </div>
 

@@ -1,29 +1,29 @@
 import React, { createContext, useContext, useReducer, useCallback, useRef } from 'react'
-// Triggering fresh Vercel build with clean code
 import { supabase, uploadPhoto, deletePhoto } from '../lib/supabase'
 import { getSession } from '../lib/auth'
 import toast from 'react-hot-toast'
+import { BRAND } from '../lib/brand'
 
 const PackageContext = createContext(null)
 
 const DEFAULT_PACKAGE = {
   id: null,
-  title: '5 Nights 6 Days Kashmir Tour Package',
-  sub_title: "Shera Travels — Let's Travel The World",
-  nights: 5,
-  days: 6,
-  start_location: 'Srinagar, Jammu & Kashmir',
+  title: '10 Days Umrah Package',
+  sub_title: `${BRAND.name} — ${BRAND.slogan}`,
+  nights: 9,
+  days: 10,
+  start_location: 'Mumbai → Jeddah',
   hero_photo_url: null,
-  inclusions: ['MAP (Room + Breakfast + Dinner)', 'Sightseeing', 'Transfers', 'Pickup & Drop', 'Private Cab', 'Accommodation', 'Shikara Ride Dal Lake'],
-  exclusions: ['Personal Activities', 'Honeymoon Special Services'],
-  tc_payment: '20% Advance of total booking amount.\nAirfare/Transport fare to be paid in full at one time in advance.',
-  tc_cancel: 'Upon cancellation, refund will be made after deducting the Retention Amount.\nRetention Amount varies as per days left before package start date.\nRefund within 15 working days.',
+  inclusions: ['Umrah Visa', 'Return Airfare', 'Hotel Stay in Makkah & Madinah', 'Daily Breakfast & Dinner', 'Airport & Intercity Transfers', 'Ziyarat in Makkah & Madinah', 'Zamzam (5 L)'],
+  exclusions: ['Personal Expenses', 'Qurbani', 'Laundry', 'Anything not mentioned in inclusions'],
+  tc_payment: '25% advance at the time of booking.\nBalance payment 30 days before departure.\nAirfare to be paid in full at the time of ticketing.',
+  tc_cancel: 'Visa fee and airfare are non-refundable once issued.\nHotel cancellation charges apply as per hotel policy.\nRefund, if any, within 15 working days.',
   tc_notes: '',
-  company_name: 'Shera Travels',
-  company_addr: 'Radio Colony, Srinagar, Lawaypora, Srinagar, Jammu and Kashmir 190017',
-  company_email: 'sheratravels21@gmail.com',
-  company_phone: '+91-9149406965, 9858966518',
-  company_gst: '01KODPS7232P1ZE',
+  company_name: BRAND.legalName,
+  company_addr: BRAND.address,
+  company_email: BRAND.email,
+  company_phone: BRAND.phone,
+  company_gst: BRAND.gst,
 }
 
 const initialState = {

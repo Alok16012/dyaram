@@ -39,7 +39,7 @@ function HotelModal({ hotel, onSave, onClose }) {
             </div>
             <div className="form-field">
               <label>Location</label>
-              <input className="glass-input" value={form.location} onChange={e => setForm({ ...form, location: e.target.value })} placeholder="e.g. Gulmarg, Kashmir" />
+              <input className="glass-input" value={form.location} onChange={e => setForm({ ...form, location: e.target.value })} placeholder="e.g. Makkah (Ajyad)" />
             </div>
           </div>
 

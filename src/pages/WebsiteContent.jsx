@@ -2,74 +2,64 @@ import { useState, useEffect } from 'react'
 import { supabase, isConfigured, uploadPhoto } from '../lib/supabase'
 import toast from 'react-hot-toast'
 import { X, Upload, ExternalLink } from 'lucide-react'
+import { BRAND } from '../lib/brand'
 
 // Public website URL — used for the "View live page" link.
-const SITE_URL = 'https://sheratravelwebsite.netlify.app'
+const SITE_URL = BRAND.website
 
-// Must mirror travelshera/src/lib/siteContent.ts `defaultAbout` so a fresh
-// editor (no saved row yet) shows the same content the website falls back to.
+// Starting content for the website "About" page. Numbers, milestones and
+// team members are placeholders for the company to fill in before publishing.
 const DEFAULT_ABOUT = {
   hero: {
-    eyebrow: 'Our Story',
-    titleLine1: 'We Show You Kashmir.',
-    titleLine2: 'You Fall in Love with It.',
-    subtitle: "Shera Travels was born from a passion for Kashmir — its mountains, lakes, meadows, and people. Today, we are the valley's most trusted travel partner, connecting 5,000+ travellers with the magic of Paradise on Earth.",
+    eyebrow: 'About Us',
+    titleLine1: 'Your Journey to the Haramain,',
+    titleLine2: 'In Trusted Hands.',
+    subtitle: `${BRAND.legalName} helps pilgrims perform Hajj and Umrah with peace of mind — from visa and flights to hotels near the Haram, transport and guided Ziyarat.`,
   },
   stats: [
-    { value: '5,000+', label: 'Happy Travellers' },
-    { value: '500+', label: 'Tours Completed' },
-    { value: '4.9/5', label: 'Average Rating' },
-    { value: '10+', label: 'Years Experience' },
+    { value: '—', label: 'Pilgrims Served' },
+    { value: '—', label: 'Umrah Groups' },
+    { value: '—', label: 'Years of Service' },
+    { value: '—', label: 'Customer Rating' },
   ],
   mission: {
     eyebrow: 'Our Mission',
-    title: 'Making Kashmir Accessible, Safe & Unforgettable',
-    para1: "We believe every traveller deserves to experience the timeless beauty of Kashmir — its snow-capped mountains, shimmering Dal Lake, blooming gardens, and legendary hospitality. That's what Shera Travels is built to provide.",
-    para2: "From solo travellers to families, from pilgrims to honeymooners — we craft personalized tours that match every budget and dream. Our deep local roots, over a decade of experience, and 24/7 support make us Kashmir's most trusted travel company.",
+    title: 'Making Hajj & Umrah Easy, Safe and Spiritual',
+    para1: 'We take care of every detail of your journey so you can focus completely on your ibadah — visas, air tickets, hotels in Makkah and Madinah, meals and transport.',
+    para2: 'From first-time pilgrims to families and senior citizens, our team guides you before departure, during your stay and until you return home.',
     bullets: [
-      'Personalized small group and private tours',
-      'Expert local guides with insider knowledge',
-      'Complete services — Air Ticketing, Hotel, Cab & Visa',
-      '24/7 support before, during and after your trip',
+      'Umrah visa with insurance and return air tickets',
+      'Hotels in Makkah & Madinah with daily meals',
+      'Air-conditioned transport and guided Ziyarat',
+      'Support before, during and after your journey',
     ],
-    image: 'https://images.unsplash.com/photo-1605649461784-eec84f8e5f0f?w=700&q=80',
-    badgeValue: '5K+',
-    badgeLabel: 'Lives Changed',
+    image: '',
+    badgeValue: '',
+    badgeLabel: 'Pilgrims served',
   },
   services: {
     eyebrow: 'What We Offer',
-    title: 'Complete Travel Services',
+    title: 'Complete Hajj & Umrah Services',
     items: [
-      { title: 'Air Ticketing', desc: 'Best fares, instant confirmation', icon: '✈️' },
-      { title: 'Hotel Booking', desc: 'Verified properties across J&K', icon: '🏨' },
-      { title: 'Cab Services', desc: 'AC vehicles, experienced drivers', icon: '🚗' },
-      { title: 'Visa Assistance', desc: 'Hassle-free visa processing', icon: '📋' },
+      { title: 'Umrah Packages', desc: 'Economy, premium and Ramadan packages', icon: '🕋' },
+      { title: 'Hajj Packages', desc: 'Guided Hajj with experienced group leaders', icon: '🕌' },
+      { title: 'Air Ticketing', desc: 'Group and individual fares to Jeddah & Madinah', icon: '✈️' },
+      { title: 'Visa Assistance', desc: 'Umrah visa with insurance', icon: '📋' },
     ],
   },
   timeline: {
     eyebrow: 'Our Journey',
-    title: 'From 6 Travellers to 5,000+',
+    title: 'Our Story So Far',
     milestones: [
-      { year: '2012', event: 'Shera Travels founded with first small group tour to Gulmarg — 6 travellers' },
-      { year: '2014', event: 'Expanded to Pahalgam, Sonamarg, and Ladakh tours' },
-      { year: '2016', event: 'Launched pilgrimage packages — Vaishno Devi and Amarnath Yatra' },
-      { year: '2018', event: 'Crossed 500 happy customers, launched international tourist packages' },
-      { year: '2020', event: 'Adapted during pandemic — introduced flexible booking and virtual Kashmir experiences' },
-      { year: '2022', event: '1,000+ customers served, expanded services to Air Ticketing, Hotel Booking, Cab & Visa' },
-      { year: '2024', event: '5,000+ travellers, 30+ destinations, rated Kashmir\'s most trusted travel company' },
+      { year: '', event: 'Add your company milestones here' },
     ],
   },
   team: {
-    eyebrow: 'The Team',
-    title: 'The People Behind Shera Travels',
-    subtitle: 'A passionate team of Kashmiris and travel professionals united by one mission — to share the magic of Kashmir with the world.',
+    eyebrow: 'Our Team',
+    title: `The People Behind ${BRAND.name}`,
+    subtitle: 'A dedicated team committed to serving the guests of Allah.',
     members: [
-      { name: 'Bashir Ahmad Shera', role: 'Founder & CEO', image: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&q=80', bio: 'Born and raised in Kashmir, Bashir has been guiding travellers through the valley for over 15 years with unmatched local expertise.' },
-      { name: 'Nazir Ahmad', role: 'Head of Operations', image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&q=80', bio: '10+ years in Kashmir tourism industry, ensuring every guest receives seamless, comfortable, and memorable travel experiences.' },
-      { name: 'Irfan Bhat', role: 'Senior Tour Guide', image: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&q=80', bio: 'Certified trek leader who has guided 300+ tours across Kashmir, Ladakh, and Himachal Pradesh.' },
-      { name: 'Shabnam Koul', role: 'Customer Relations', image: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&q=80', bio: 'Dedicated to making every traveller feel at home in Kashmir, from first enquiry to safe return.' },
-      { name: 'Mushtaq Lone', role: 'Transport Manager', image: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=200&q=80', bio: 'Manages our fleet of premium vehicles, ensuring safe and comfortable travel across all terrains.' },
-      { name: 'Aadil Sheikh', role: 'Digital & Bookings', image: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200&q=80', bio: 'Handles all digital bookings, air ticketing, hotel reservations, and visa assistance for our clients.' },
+      { name: 'Team member', role: 'Director', image: '', bio: 'Add a short bio.' },
     ],
   },
 }
@@ -189,7 +179,7 @@ export default function WebsiteContent() {
             Edit the <strong>About Us</strong> page. Changes go live on the website within a few seconds of saving.
           </p>
         </div>
-        <a className="btn btn-ghost" href={`${SITE_URL}/about`} target="_blank" rel="noreferrer" style={{ whiteSpace: 'nowrap' }}><ExternalLink size={15} /> View live page</a>
+        {SITE_URL && <a className="btn btn-ghost" href={`${SITE_URL}/about`} target="_blank" rel="noreferrer" style={{ whiteSpace: 'nowrap' }}><ExternalLink size={15} /> View live page</a>}
       </div>
 
       {/* Hero */}

@@ -151,7 +151,7 @@ export default function Photos() {
             <div className="photo-gallery">
               {pagedLibrary.map(photo => (
                 <div key={photo.id} className="photo-tile">
-                  <div className="photo-thumb" style={{ backgroundImage: `url(${photo.photo_url})` }}>
+                  <div className="photo-thumb" style={{ backgroundImage: `url("${photo.photo_url}")` }}>
                     <div className="photo-overlay">
                       <button className="icon-action" onClick={() => window.open(photo.photo_url, '_blank')} title="View full size"><Eye size={15} /></button>
                       <button className="icon-action danger" onClick={() => handleDelete(photo.id, photo.photo_url)} title="Delete"><Trash2 size={15} /></button>

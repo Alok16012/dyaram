@@ -9,11 +9,16 @@
   --border-glass: #EAEEF3;
   --border-strong: #DDE3EA;
 
-  --primary: #12A15A;
-  --primary-dark: #0C8A4B;
-  --primary-light: #E8F6EE;
-  --primary-soft: #F2FAF5;
-  --primary-glow: rgba(18, 161, 90, 0.18);
+  /* Brand: Dayare Haram logo — navy globe, red plane, grey swoosh */
+  --primary: #0D2A7D;
+  --primary-dark: #061B5C;
+  --primary-light: #E9EEF9;
+  --primary-soft: #F4F6FC;
+  --primary-glow: rgba(13, 42, 125, 0.16);
+  --accent: #D90A0A;
+  --accent-dark: #B00606;
+  --accent-light: #FDECEC;
+  --brand-grey: #889898;
 
   --text-bright: #0F172A;
   --text-body: #334155;
@@ -22,7 +27,7 @@
 
   --success: #12A15A;  --success-bg: #E8F6EE;
   --warning: #E08A00;  --warning-bg: #FFF4E0;
-  --danger:  #E5484D;  --danger-bg:  #FDECEC;
+  --danger:  #D92D20;  --danger-bg:  #FDECEC;
   --info:    #3B6FF6;  --info-bg:    #EAF0FF;
   --purple:  #8B5CF6;  --purple-bg:  #F2EDFF;
 
@@ -79,13 +84,18 @@ h1, h2, h3, h4, h5, h6 { font-weight: 600; letter-spacing: -0.01em; }
 }
 
 .sidebar-top {
-  height: var(--header-h);
+  height: 88px;
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 18px 0 22px;
+  gap: 6px;
+  padding: 0 12px 0 16px;
+  border-bottom: 1px solid #F1F4F7;
+  margin-bottom: 6px;
 }
+.brand-logo-full { display: block; max-width: 176px; height: auto !important; max-height: 66px; object-fit: contain; }
+.layout-wrapper.collapsed .sidebar-toggle { width: 50px; height: 50px; border-radius: 50%; }
 
 .brand {
   display: flex;
@@ -913,7 +923,7 @@ textarea.glass-input { resize: vertical; min-height: 80px; line-height: 1.5; }
 .tab-line.active .tab-count { background: #fff; color: var(--primary-dark); }
 
 .row-actions { display: flex; gap: 6px; justify-content: flex-end; }
-.icon-action.green:hover { color: var(--primary); background: var(--primary-light); border-color: #BFE5CF; }
+.icon-action.green:hover { color: var(--primary); background: var(--primary-light); border-color: #C3CEEC; }
 .icon-action.blue:hover { color: var(--info); background: var(--info-bg); border-color: #C9D7FD; }
 .icon-action.whatsapp { color: #1FAF5A; }
 .icon-action.whatsapp:hover { background: #E7F8EE; border-color: #BCEBCF; }
@@ -953,7 +963,7 @@ a.icon-action { text-decoration: none; }
   padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border-glass);
   background: #fff; cursor: pointer; text-align: left;
 }
-.pick-item:hover { border-color: #BFE5CF; background: var(--primary-soft); }
+.pick-item:hover { border-color: #C3CEEC; background: var(--primary-soft); }
 
 .split-2 { display: grid; grid-template-columns: minmax(260px, 340px) minmax(0, 1fr); gap: 16px; align-items: start; }
 @media (max-width: 1100px) { .split-2 { grid-template-columns: minmax(0, 1fr); } }
@@ -1061,3 +1071,17 @@ input.search-input {
   .page-workspace { padding: 0 !important; }
   .editor-page .editor-canvas { display: none !important; }
 }
+
+/* Itinerary preview toolbar */
+.pv-action {
+  display: inline-flex; align-items: center; gap: 8px;
+  height: 42px; padding: 0 18px; border-radius: 10px;
+  border: 1px solid var(--border-strong); background: #fff; color: var(--text-bright);
+  font-size: 13.5px; font-weight: 500; cursor: pointer;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+}
+.pv-action:disabled { opacity: 0.6; cursor: wait; }
+.pv-action.primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+.pv-action.whatsapp { background: #25D366; border-color: #25D366; color: #fff; }
+.pv-action.icon { width: 42px; padding: 0; justify-content: center; }
+@media print { .pv-action { display: none !important; } }

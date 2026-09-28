@@ -48,7 +48,7 @@ export default function InfoTab({ active }) {
         <input
           className="glass-input"
           value={pkg.title || ''}
-          placeholder="e.g. 5 Nights 6 Days Kashmir Tour"
+          placeholder="e.g. 10 Days Umrah Package"
           onChange={e => updateField('title', e.target.value)}
         />
       </div>
@@ -57,7 +57,7 @@ export default function InfoTab({ active }) {
         <input
           className="glass-input"
           value={pkg.sub_title || ''}
-          placeholder="e.g. Shera Travels — Let's Travel The World"
+          placeholder="e.g. Dayare Haram — Your journey to the Haramain"
           onChange={e => updateField('sub_title', e.target.value)}
         />
       </div>
@@ -75,7 +75,7 @@ export default function InfoTab({ active }) {
       </div>
       <div className="field">
         <label>Starting From</label>
-        <input className="glass-input" value={pkg.start_location || ''} placeholder="e.g. Srinagar, J&K"
+        <input className="glass-input" value={pkg.start_location || ''} placeholder="e.g. Mumbai → Jeddah"
           onChange={e => updateField('start_location', e.target.value)} />
       </div>
 

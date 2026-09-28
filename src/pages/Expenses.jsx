@@ -168,7 +168,7 @@ export default function Expenses() {
     total: expenses.filter(e => e.category === c).reduce((a, e) => a + (Number(e.amount) || 0), 0),
   })).filter(c => c.total > 0).sort((a, b) => b.total - a.total)
   const topCat = byCategory[0]
-  const CAT_COLORS = ['#12A15A', '#3B6FF6', '#F5A623', '#8B5CF6', '#0E9CB5', '#E5484D']
+  const CAT_COLORS = ['#0D2A7D', '#D90A0A', '#F5A623', '#889898', '#3B6FF6', '#8B5CF6']
 
   return (
     <div>

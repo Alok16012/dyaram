@@ -178,7 +178,7 @@ function LeadModal({ lead, onSave, onClose }) {
           
           <div className="form-field">
             <label>Destination</label>
-            <input className="glass-input" value={form.destination} onChange={e => setForm({...form, destination: e.target.value})} placeholder="e.g. Kashmir, Maldives" />
+            <input className="glass-input" value={form.destination} onChange={e => setForm({...form, destination: e.target.value})} placeholder="e.g. Umrah, Hajj 2027" />
           </div>
           
           <div className="form-row">

@@ -5,6 +5,7 @@ import { supabase, isDemo } from '../lib/supabase'
 import { setSession } from '../lib/auth'
 import { User, Lock, Eye, EyeOff, ArrowRight, CheckCircle2 } from 'lucide-react'
 import BrandMark from '../components/BrandMark'
+import { BRAND } from '../lib/brand'
 import './Login.css'
 
 export default function Login() {
@@ -76,22 +77,19 @@ export default function Login() {
     <div className="auth">
       <aside className="auth-brand">
         <div className="auth-brand-top">
-          <BrandMark size={42} />
-          <div>
-            <div className="auth-brand-name">Shera Travels</div>
-            <div className="auth-brand-tag">TRAVEL &amp; TOURS</div>
-          </div>
+          <div className="auth-logo-badge"><BrandMark variant="full" size={64} /></div>
         </div>
         <div className="auth-brand-copy">
-          <h2>Manage every journey<br />from one place.</h2>
-          <p>Leads, bookings, itineraries, invoices and payments — your complete travel business CRM.</p>
+          <div className="auth-eyebrow">Hajj &amp; Umrah CRM</div>
+          <h2>Serve every pilgrim,<br />from inquiry to Haramain.</h2>
+          <p>Leads, bookings, Umrah itineraries, invoices and payments — one place for your whole team.</p>
           <ul>
-            <li><CheckCircle2 size={18} /> Track leads from inquiry to booking</li>
-            <li><CheckCircle2 size={18} /> Build and share itineraries in minutes</li>
+            <li><CheckCircle2 size={18} /> Track pilgrims from first inquiry to departure</li>
+            <li><CheckCircle2 size={18} /> Build Makkah &amp; Madinah itineraries in minutes</li>
             <li><CheckCircle2 size={18} /> GST invoices, payments and revenue reports</li>
           </ul>
         </div>
-        <div className="auth-brand-foot">© {new Date().getFullYear()} Shera Travels. All rights reserved.</div>
+        <div className="auth-brand-foot">© {new Date().getFullYear()} {BRAND.legalName}. All rights reserved.</div>
         <svg className="auth-brand-art" viewBox="0 0 400 300" fill="none" aria-hidden="true">
           <path d="M-20 250C80 180 180 250 260 160S400 90 440 60" stroke="#fff" strokeOpacity=".18" strokeWidth="2" strokeDasharray="6 8" />
           <circle cx="330" cy="70" r="90" fill="#fff" fillOpacity=".06" />
@@ -101,7 +99,7 @@ export default function Login() {
 
       <main className="auth-main">
         <form onSubmit={handleLogin} className="auth-card">
-          <div className="auth-mobile-brand"><BrandMark size={40} /><span>Shera Travels</span></div>
+          <div className="auth-mobile-brand"><BrandMark variant="full" size={58} /></div>
           <h1>Welcome back</h1>
           <p className="auth-sub">Sign in to your account to continue.</p>
 
@@ -129,7 +127,7 @@ export default function Login() {
               <div className="auth-demo-title">Demo accounts <span>click to fill</span></div>
               <button type="button" onClick={() => fillDemo('admin', 'admin123')}><strong>Admin</strong><span>admin / admin123</span></button>
               <button type="button" onClick={() => fillDemo('sales', 'demo123')}><strong>Sales</strong><span>sales / demo123</span></button>
-              <button type="button" onClick={() => fillDemo('aman', 'demo123')}><strong>Operations</strong><span>aman / demo123</span></button>
+              <button type="button" onClick={() => fillDemo('imran', 'demo123')}><strong>Operations</strong><span>imran / demo123</span></button>
             </div>
           )}
         </form>

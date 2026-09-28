@@ -2,18 +2,19 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" href="/logo-mark.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Shera Travels Itinerary Maker — Create professional Kashmir tour packages with ease." />
-    <title>Shera Travels – Itinerary Maker</title>
+    <meta name="description" content="Dayare Haram Hajj Umrah Tours — CRM for leads, bookings, itineraries and invoices." />
+    <title>Dayare Haram – Hajj &amp; Umrah CRM</title>
   </head>
   <body>
     <div id="root">
       <!-- Instant paint: shows while the JS bundle downloads, then React
            replaces #root's contents on mount. Inline so it needs no extra request. -->
       <div id="app-boot">
+        <img src="/logo.png" alt="Dayare Haram" style="height:72px;width:auto" />
         <div class="app-boot-spinner"></div>
-        <p class="app-boot-text">Loading Shera Travels…</p>
+        <p class="app-boot-text">Loading Dayare Haram…</p>
       </div>
     </div>
     <style>
@@ -21,17 +22,17 @@
         position: fixed; inset: 0;
         display: flex; flex-direction: column;
         align-items: center; justify-content: center;
-        gap: 16px; background: #0f1117;
+        gap: 16px; background: #F6F8FA;
         font-family: Inter, system-ui, -apple-system, sans-serif;
       }
       .app-boot-spinner {
         width: 44px; height: 44px;
-        border: 3px solid rgba(255,255,255,0.12);
-        border-top-color: #4F6EF7;
+        border: 3px solid #E3E8F2;
+        border-top-color: #0D2A7D;
         border-radius: 50%;
         animation: app-boot-spin 0.8s linear infinite;
       }
-      .app-boot-text { color: #94a3b8; font-size: 13px; letter-spacing: 0.02em; margin: 0; }
+      .app-boot-text { color: #64748B; font-size: 13px; letter-spacing: 0.02em; margin: 0; }
       @keyframes app-boot-spin { to { transform: rotate(360deg); } }
     </style>
     <script type="module" src="/src/main.jsx"></script>

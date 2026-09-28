@@ -15,7 +15,6 @@ const Editor  = lazy(() => import('./pages/Editor'))
 const Admin   = lazy(() => import('./pages/Admin'))
 
 // CRM pages
-const Dashboard     = lazy(() => import('./pages/crm/Dashboard'))
 const Leads         = lazy(() => import('./pages/crm/Leads'))
 const Bookings      = lazy(() => import('./pages/crm/Bookings'))
 const BookingDetail = lazy(() => import('./pages/crm/BookingDetail'))
