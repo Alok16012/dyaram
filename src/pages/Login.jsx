@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import toast from 'react-hot-toast'
 import bcrypt from 'bcryptjs'
-import { supabase, isDemo } from '../lib/supabase'
-import { setSession } from '../lib/auth'
+import { supabase, isDemo, isLive } from '../lib/supabase'
+import { setSession, signIn } from '../lib/auth'
 import { User, Lock, Eye, EyeOff, ArrowRight, CheckCircle2 } from 'lucide-react'
 import BrandMark from '../components/BrandMark'
 import { BRAND } from '../lib/brand'
@@ -19,46 +19,32 @@ export default function Login() {
 
     try {
       const username = id.trim()
-      const { data: matches, error } = await supabase
-        .from('app_users')
-        .select('*')
-        .eq('username', username)
-      if (error) throw error
+      let user
 
-      let user = matches?.[0] || null
-
-      // First-run bootstrap: if no users exist yet, the default admin/admin123
-      // credentials create the initial admin account automatically.
-      if (!user) {
-        const { data: anyUsers } = await supabase.from('app_users').select('id').limit(1)
-        if ((!anyUsers || anyUsers.length === 0) && username === 'admin' && pass === 'admin123') {
-          const password_hash = bcrypt.hashSync(pass, 10)
-          const { data: created, error: createErr } = await supabase
-            .from('app_users')
-            .insert([{
-              username: 'admin',
-              password_hash,
-              full_name: 'Administrator',
-              role: 'Admin',
-              is_admin: true,
-              permissions: {},
-              active: true,
-            }])
-            .select()
-          if (createErr) throw createErr
-          user = created?.[0] || null
+      if (isLive) {
+        // Real login: Supabase Auth checks the password on the server.
+        try {
+          user = await signIn(username, pass)
+        } catch (err) {
+          toast.error(err.message)
+          setLoading(false)
+          return
         }
+      } else {
+        // Demo mode: sample users live in localStorage.
+        const { data: matches } = await supabase.from('app_users').select('*').eq('username', username)
+        const found = matches?.[0] || null
+        if (!found || !found.active || !bcrypt.compareSync(pass, found.password_hash || '')) {
+          toast.error('Invalid ID or Password')
+          setLoading(false)
+          return
+        }
+        user = setSession(found)
       }
 
-      if (!user || !user.active || !bcrypt.compareSync(pass, user.password_hash)) {
-        toast.error('Invalid ID or Password')
-        setLoading(false)
-        return
-      }
-
-      setSession(user)
       toast.success(`Welcome back, ${user.full_name || user.username}!`)
-      supabase.from('audit_logs').insert([{ actor: user.full_name || user.username, action: 'Login', details: `Logged in as ${user.username}` }])
+      // Builders only run when awaited; don't let a failed log block the login.
+      await supabase.from('audit_logs').insert([{ actor: user.full_name || user.username, action: 'Login', details: `Logged in as ${user.username}` }]).then(() => {}, () => {})
       // Full reload (not SPA nav) so all in-memory context — including the
       // per-user itinerary cache — resets cleanly for the new user.
       window.location.href = '/'

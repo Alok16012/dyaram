@@ -1,3 +1,5 @@
+import { supabase, isLive } from './supabase'
+
 // ── Permission model ────────────────────────────────────────────────────
 // Every module in the sidebar maps to a key here. A user either has
 // is_admin = true (full, unrestricted access) or a `permissions` jsonb map
@@ -10,6 +12,8 @@ export const MODULES = [
   { key: 'leads',      label: 'Leads',       path: '/leads' },
   { key: 'whatsapp',   label: 'WhatsApp',    path: '/whatsapp' },
   { key: 'bookings',   label: 'Bookings',    path: '/bookings' },
+  { key: 'customers',  label: 'Customers',   path: '/customers' },
+  { key: 'payments',   label: 'Payments',    path: '/payments' },
   { key: 'itinerary',  label: 'Itinerary',   path: '/itinerary' },
   { key: 'invoices',   label: 'Invoices',    path: '/invoices' },
   { key: 'hotels',     label: 'Hotels',      path: '/hotels' },
@@ -48,6 +52,51 @@ export function setSession(user) {
 export function clearSession() {
   localStorage.removeItem(SESSION_KEY)
   localStorage.removeItem('shara_auth')
+}
+
+// ── Supabase Auth (live mode) ───────────────────────────────────────────
+// The local session above is only a cache for the UI. Data access is
+// enforced by row level security in the database (supabase-security.sql).
+
+// Usernames without "@" log in as <username>@STAFF_EMAIL_DOMAIN.
+// Keep in sync with supabase/functions/_shared/auth.ts.
+export const STAFF_EMAIL_DOMAIN = 'staff.dayareharam.com'
+export const toAuthEmail = (username) => {
+  const u = String(username || '').trim().toLowerCase()
+  return u.includes('@') ? u : `${u.replace(/[^a-z0-9._-]/g, '')}@${STAFF_EMAIL_DOMAIN}`
+}
+
+async function loadAppUser(authId) {
+  const { data } = await supabase.from('app_users').select('*').eq('auth_id', authId).maybeSingle()
+  return data && data.active !== false ? data : null
+}
+
+// Returns the app user on success, or throws with a message for the login form.
+export async function signIn(username, password) {
+  const { data, error } = await supabase.auth.signInWithPassword({ email: toAuthEmail(username), password })
+  if (error) throw new Error(/invalid|credentials/i.test(error.message) ? 'Invalid ID or Password' : error.message)
+  const user = await loadAppUser(data.user.id)
+  if (!user) {
+    await supabase.auth.signOut()
+    throw new Error('This account is inactive or not set up in the CRM')
+  }
+  return setSession(user)
+}
+
+export async function signOut() {
+  clearSession()
+  if (isLive) await supabase.auth.signOut().catch(() => {})
+}
+
+// Called once on app start: re-reads the user's permissions from the
+// database so changes made by an admin (or deactivation) apply on reload.
+export async function refreshSession() {
+  if (!isLive) return
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session) { clearSession(); return }
+  const user = await loadAppUser(session.user.id)
+  if (!user) { await signOut(); return }
+  setSession(user)
 }
 
 export function isLoggedIn() {

@@ -1,6 +1,7 @@
 // CRM → WhatsApp: connection status, approved templates and (bulk) sending.
 // Called from the browser with supabase.functions.invoke('whatsapp', …).
 import { admin, cors, env, graph, json, normalizePhone, sendTemplate, sendText, type Param, type TemplateSend } from '../_shared/whatsapp.ts'
+import { callerAppUser } from '../_shared/auth.ts'
 
 type Recipient = {
   to: string
@@ -13,13 +14,10 @@ type Recipient = {
 const CONCURRENCY = 5
 const MAX_BATCH = 50
 
-// The CRM uses its own app_users login (no Supabase Auth), so the caller
-// passes its user id and we check it is an active user allowed to use WhatsApp.
-async function authorize(db: ReturnType<typeof admin>, userId: unknown) {
-  if (!userId || typeof userId !== 'string') return false
-  const { data } = await db.from('app_users').select('id, active, is_admin, permissions').eq('id', userId).maybeSingle()
-  if (!data || data.active === false) return false
-  return data.is_admin || !!data.permissions?.whatsapp
+// Caller must be a signed-in, active CRM user with the WhatsApp module.
+async function authorize(db: ReturnType<typeof admin>, req: Request) {
+  const me = await callerAppUser(db, req)
+  return !!me && (me.is_admin || !!me.permissions?.whatsapp)
 }
 
 function missingConfig(needWaba = false) {
@@ -129,7 +127,7 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(() => ({}))
     const db = admin()
-    if (!(await authorize(db, body.user_id))) return json({ error: 'Not allowed to use WhatsApp' }, 403)
+    if (!(await authorize(db, req))) return json({ error: 'Not allowed to use WhatsApp' }, 403)
 
     switch (body.action) {
       case 'status':     return json(await status())

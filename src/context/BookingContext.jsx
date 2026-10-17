@@ -1,5 +1,5 @@
 import { createContext, useContext, useReducer, useCallback, useRef } from 'react'
-import { supabase, isConfigured } from '../lib/supabase'
+import { supabase, isConfigured, isLive } from '../lib/supabase'
 import { sendNewBookingEmail, sendReceiptEmail } from '../lib/email'
 import toast from 'react-hot-toast'
 import { bookingRef } from '../lib/brand'
@@ -99,6 +99,12 @@ export function BookingProvider({ children }) {
   // ── Fetch booking by public token (customer form) ───────
   const fetchBookingByToken = useCallback(async (token) => {
     try {
+      // Live: customers aren't logged in, so a narrow RPC returns just this booking.
+      if (isLive) {
+        const { data, error } = await supabase.rpc('public_booking', { p_token: token })
+        if (error) throw error
+        return data
+      }
       const { data, error } = await supabase
         .from('bookings').select('*, packages(title, nights, days, company_name, company_phone)')
         .eq('booking_token', token).single()
@@ -237,6 +243,12 @@ export function BookingProvider({ children }) {
   // ── Update customer details from public form ─────────────
   const updateFromPublicForm = useCallback(async (token, formData) => {
     try {
+      if (isLive) {
+        const { data, error } = await supabase.rpc('public_update_booking', { p_token: token, p: formData })
+        if (error) throw error
+        if (!data) throw new Error('Booking not found')
+        return data
+      }
       const { data, error } = await supabase
         .from('bookings')
         .update({ ...formData, updated_at: new Date().toISOString() })

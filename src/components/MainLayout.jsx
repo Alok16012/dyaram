@@ -7,7 +7,7 @@ import {
   ScrollText, ShieldCheck, Settings, LogOut, Bell, Search, ChevronDown,
   Menu, User, MessageCircle,
 } from 'lucide-react'
-import { getSession, hasAccess, isAdmin, clearSession } from '../lib/auth'
+import { getSession, hasAccess, isAdmin, signOut } from '../lib/auth'
 import { isDemo } from '../lib/supabase'
 import { useCRM } from '../context/CRMContext'
 import { useBooking } from '../context/BookingContext'
@@ -50,11 +50,11 @@ function GlobalSearch() {
     const term = q.trim().toLowerCase()
     if (!term) return []
     const hit = (...vals) => vals.some(v => String(v || '').toLowerCase().includes(term))
-    const b = bookings
+    const b = (hasAccess('bookings') ? bookings : [])
       .filter(x => hit(x.customer_name, x.customer_phone, x.booking_ref, x.destination))
       .slice(0, 5)
       .map(x => ({ key: `b-${x.id}`, kind: 'Booking', title: `${x.customer_name} · ${x.booking_ref}`, sub: x.destination || '—', to: `/bookings/${x.id}` }))
-    const l = leads
+    const l = (hasAccess('leads') ? leads : [])
       .filter(x => hit(x.name, x.phone, x.email, x.destination))
       .slice(0, 5)
       .map(x => ({ key: `l-${x.id}`, kind: 'Lead', title: x.name, sub: [x.destination, x.phone].filter(Boolean).join(' · '), to: `/leads?q=${encodeURIComponent(x.name)}` }))
@@ -76,7 +76,11 @@ function GlobalSearch() {
         type="text"
         placeholder="Search by name, phone, booking ID, destination..."
         value={q}
-        onFocus={() => { fetchLeads(); fetchBookings(); setOpen(true) }}
+        onFocus={() => {
+          if (hasAccess('leads')) fetchLeads()
+          if (hasAccess('bookings')) fetchBookings()
+          setOpen(true)
+        }}
         onChange={(e) => { setQ(e.target.value); setActive(0); setOpen(true) }}
         onKeyDown={(e) => {
           if (e.key === 'ArrowDown') { e.preventDefault(); setActive(a => Math.min(a + 1, results.length - 1)) }
@@ -110,7 +114,7 @@ function Notifications() {
   const [open, setOpen] = useState(false)
   const ref = useRef(null)
   useClickOutside(ref, open, () => setOpen(false))
-  const fresh = leads.filter(l => l.stage === 'new_inquiry').slice(0, 6)
+  const fresh = hasAccess('leads') ? leads.filter(l => l.stage === 'new_inquiry').slice(0, 6) : []
 
   return (
     <div className="user-menu" ref={ref}>
@@ -202,8 +206,8 @@ export default function MainLayout({ children, headerActions }) {
     })
   }
 
-  const handleLogout = () => {
-    clearSession()
+  const handleLogout = async () => {
+    await signOut()
     toast.success('Logged out successfully')
     navigate('/login')
   }
@@ -217,12 +221,12 @@ export default function MainLayout({ children, headerActions }) {
     { label: 'Sales & CRM', items: [
       { path: '/leads', label: 'Leads', icon: I(Users), module: 'leads' },
       { path: '/bookings', label: 'Bookings', icon: I(CalendarCheck), module: 'bookings' },
-      { path: '/customers', label: 'Customers', icon: I(UserRound), module: 'leads' },
+      { path: '/customers', label: 'Customers', icon: I(UserRound), module: 'customers' },
     ] },
     { label: 'Operations', items: [
       { path: '/itinerary', label: 'Itineraries', icon: I(MapIcon), module: 'itinerary' },
       { path: '/invoices', label: 'Invoices', icon: I(FileText), module: 'invoices' },
-      { path: '/payments', label: 'Payments', icon: I(CreditCard), module: 'bookings' },
+      { path: '/payments', label: 'Payments', icon: I(CreditCard), module: 'payments' },
     ] },
     { label: 'Resources', items: [
       { path: '/hotels', label: 'Hotels', icon: I(Hotel), module: 'hotels' },

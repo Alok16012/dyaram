@@ -13,7 +13,7 @@ import { usePackage } from '../context/PackageContext'
 import { useCRM } from '../context/CRMContext'
 import { useBooking } from '../context/BookingContext'
 import { supabase } from '../lib/supabase'
-import { getSession } from '../lib/auth'
+import { getSession, hasAccess } from '../lib/auth'
 import { StatCard, Card, Pill, Avatar, EmptyState } from '../components/ui'
 import { BOOKING_TONE, LEAD_TONE, inr, inrShort, fmtDate, timeAgo } from '../lib/ui'
 import './Home.css'
@@ -121,11 +121,21 @@ export default function Home() {
   const [rowMenu, setRowMenu] = useState(null)
   const newMenuRef = useRef(null)
 
+  // Each dashboard section only shows (and loads) data the user has access to.
+  const can = {
+    itinerary: hasAccess('itinerary'),
+    leads: hasAccess('leads'),
+    bookings: hasAccess('bookings'),
+    revenue: hasAccess('income'),
+    customers: hasAccess('customers'),
+    invoices: hasAccess('invoices'),
+  }
+
   useEffect(() => {
-    fetchPackages()
-    fetchLeads()
-    fetchBookings()
-    supabase.from('payments').select('*').then(({ data }) => setPayments(data || []))
+    if (hasAccess('itinerary')) fetchPackages()
+    if (hasAccess('leads')) fetchLeads()
+    if (hasAccess('bookings') || hasAccess('income')) fetchBookings()
+    if (hasAccess('income')) supabase.from('payments').select('*').then(({ data }) => setPayments(data || []))
   }, [fetchPackages, fetchLeads, fetchBookings])
 
   useEffect(() => {
@@ -251,13 +261,31 @@ export default function Home() {
   const totalBookings = bookings.length
 
   const quickActions = [
-    { label: 'Add New Lead', icon: UserPlus, onClick: () => navigate('/leads?new=1') },
-    { label: 'New Booking', icon: CalendarCheck, onClick: () => navigate('/bookings?new=1') },
-    { label: 'Create Itinerary', icon: FilePlus2, onClick: handleNewItinerary },
-    { label: 'View Customers', icon: UserRound, onClick: () => navigate('/customers') },
-    { label: 'Send Itinerary', icon: Send, onClick: () => setSendQuoteOpen(true) },
-    { label: 'Generate Invoice', icon: FileText, onClick: () => navigate('/invoices/new') },
-  ]
+    can.leads && { label: 'Add New Lead', icon: UserPlus, onClick: () => navigate('/leads?new=1') },
+    can.bookings && { label: 'New Booking', icon: CalendarCheck, onClick: () => navigate('/bookings?new=1') },
+    can.itinerary && { label: 'Create Itinerary', icon: FilePlus2, onClick: handleNewItinerary },
+    can.customers && { label: 'View Customers', icon: UserRound, onClick: () => navigate('/customers') },
+    can.itinerary && { label: 'Send Itinerary', icon: Send, onClick: () => setSendQuoteOpen(true) },
+    can.invoices && { label: 'Generate Invoice', icon: FileText, onClick: () => navigate('/invoices/new') },
+  ].filter(Boolean)
+  const newItems = [
+    can.bookings && { label: 'New Booking', icon: CalendarCheck, onClick: () => navigate('/bookings?new=1') },
+    can.leads && { label: 'New Lead', icon: UserPlus, onClick: () => navigate('/leads?new=1') },
+    can.itinerary && { label: 'New Itinerary', icon: MapIcon, onClick: handleNewItinerary },
+    can.invoices && { label: 'New Invoice', icon: FileText, onClick: () => navigate('/invoices/new') },
+  ].filter(Boolean)
+  const kpiCards = [
+    can.itinerary && <StatCard key="pk" icon={BriefcaseBusiness} tone="blue" label="Total Packages" value={packages.length.toLocaleString('en-IN')}
+      trend={pctChange(kpis.cur.packages, kpis.prev.packages)} trendLabel={vsLabel} />,
+    can.leads && <StatCard key="ld" icon={Users} tone="blue" label="New Leads" value={kpis.cur.leads.toLocaleString('en-IN')}
+      trend={pctChange(kpis.cur.leads, kpis.prev.leads)} trendLabel={vsLabel} />,
+    can.bookings && <StatCard key="bk" icon={CalendarCheck} tone="green" label="Confirmed Bookings" value={kpis.cur.bookings.toLocaleString('en-IN')}
+      trend={pctChange(kpis.cur.bookings, kpis.prev.bookings)} trendLabel={vsLabel} />,
+    can.revenue && <StatCard key="rv" icon={IndianRupee} tone="green" label="Total Revenue" value={inr(kpis.cur.revenue)}
+      trend={pctChange(kpis.cur.revenue, kpis.prev.revenue)} trendLabel={vsLabel} />,
+    can.bookings && <StatCard key="cu" icon={Star} tone="orange" label="Active Customers" value={kpis.cur.customers.toLocaleString('en-IN')}
+      trend={pctChange(kpis.cur.customers, kpis.prev.customers)} trendLabel={vsLabel} />,
+  ].filter(Boolean)
 
   return (
     <div className="dash">
@@ -276,44 +304,36 @@ export default function Home() {
               {RANGES.map(r => <option key={r.id} value={r.id}>{r.label}</option>)}
             </select>
           </label>
-          <div className="split-btn" ref={newMenuRef}>
-            <button className="btn btn-primary split-main" onClick={() => navigate('/bookings?new=1')}>
-              <Plus size={18} /> New Booking
-            </button>
-            <button className="btn btn-primary split-caret" onClick={() => setNewMenu(o => !o)} aria-label="More">
-              <ChevronDown size={16} />
-            </button>
-            {newMenu && (
-              <div className="dropdown">
-                <button className="dropdown-item" onClick={() => navigate('/bookings?new=1')}><CalendarCheck size={16} /> New Booking</button>
-                <button className="dropdown-item" onClick={() => navigate('/leads?new=1')}><UserPlus size={16} /> New Lead</button>
-                <button className="dropdown-item" onClick={handleNewItinerary}><MapIcon size={16} /> New Itinerary</button>
-                <button className="dropdown-item" onClick={() => navigate('/invoices/new')}><FileText size={16} /> New Invoice</button>
-              </div>
-            )}
-          </div>
+          {newItems.length > 0 && (
+            <div className="split-btn" ref={newMenuRef}>
+              <button className="btn btn-primary split-main" onClick={newItems[0].onClick}>
+                <Plus size={18} /> {newItems[0].label}
+              </button>
+              {newItems.length > 1 && (
+                <button className="btn btn-primary split-caret" onClick={() => setNewMenu(o => !o)} aria-label="More">
+                  <ChevronDown size={16} />
+                </button>
+              )}
+              {newMenu && (
+                <div className="dropdown">
+                  {newItems.map(it => (
+                    <button key={it.label} className="dropdown-item" onClick={it.onClick}><it.icon size={16} /> {it.label}</button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
       {/* ── KPIs ── */}
-      <div className="kpi-grid kpi-grid-5">
-        <StatCard icon={BriefcaseBusiness} tone="blue" label="Total Packages" value={packages.length.toLocaleString('en-IN')}
-          trend={pctChange(kpis.cur.packages, kpis.prev.packages)} trendLabel={vsLabel} />
-        <StatCard icon={Users} tone="blue" label="New Leads" value={kpis.cur.leads.toLocaleString('en-IN')}
-          trend={pctChange(kpis.cur.leads, kpis.prev.leads)} trendLabel={vsLabel} />
-        <StatCard icon={CalendarCheck} tone="green" label="Confirmed Bookings" value={kpis.cur.bookings.toLocaleString('en-IN')}
-          trend={pctChange(kpis.cur.bookings, kpis.prev.bookings)} trendLabel={vsLabel} />
-        <StatCard icon={IndianRupee} tone="green" label="Total Revenue" value={inr(kpis.cur.revenue)}
-          trend={pctChange(kpis.cur.revenue, kpis.prev.revenue)} trendLabel={vsLabel} />
-        <StatCard icon={Star} tone="orange" label="Active Customers" value={kpis.cur.customers.toLocaleString('en-IN')}
-          trend={pctChange(kpis.cur.customers, kpis.prev.customers)} trendLabel={vsLabel} />
-      </div>
+      {kpiCards.length > 0 && <div className={`kpi-grid ${kpiCards.length === 5 ? 'kpi-grid-5' : ''}`}>{kpiCards}</div>}
 
       <div className="dash-grid">
         <div className="dash-main">
-          <div className="dash-row-charts">
+          {(can.revenue || can.bookings) && <div className="dash-row-charts">
             {/* Revenue */}
-            <Card
+            {can.revenue && <Card
               title="Revenue Overview"
               subtitle="Total revenue generated from bookings"
               action={
@@ -342,10 +362,10 @@ export default function Home() {
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
-            </Card>
+            </Card>}
 
             {/* Booking status */}
-            <Card title="Booking Status">
+            {can.bookings && <Card title="Booking Status">
               <div className="status-wrap">
                 <div className="donut">
                   <ResponsiveContainer width="100%" height="100%">
@@ -372,11 +392,11 @@ export default function Home() {
                   ))}
                 </ul>
               </div>
-            </Card>
-          </div>
+            </Card>}
+          </div>}
 
           {/* Recent bookings */}
-          <Card title="Recent Bookings" action={<button className="link-btn" onClick={() => navigate('/bookings')}>View All <ArrowRight size={14} /></button>} bodyClass="flush">
+          {can.bookings && <Card title="Recent Bookings" action={<button className="link-btn" onClick={() => navigate('/bookings')}>View All <ArrowRight size={14} /></button>} bodyClass="flush">
             {recentBookings.length === 0 ? (
               <EmptyState icon={CalendarCheck} title="No bookings yet" text="Convert a lead to create your first booking." />
             ) : (
@@ -433,9 +453,9 @@ export default function Home() {
                 </table>
               </div>
             )}
-          </Card>
+          </Card>}
 
-          <div className="dash-row-bottom">
+          {can.bookings && <div className="dash-row-bottom">
             {/* Popular destinations */}
             <Card title="Popular Destinations" action={<button className="link-btn" onClick={() => navigate('/bookings')}>View All <ArrowRight size={14} /></button>}>
               {destinations.length === 0 ? (
@@ -477,12 +497,12 @@ export default function Home() {
                 </ul>
               )}
             </Card>
-          </div>
+          </div>}
         </div>
 
         {/* ── Right column ── */}
         <aside className="dash-side">
-          <Card title="Quick Actions">
+          {quickActions.length > 0 && <Card title="Quick Actions">
             <div className="qa-grid">
               {quickActions.map(a => (
                 <button key={a.label} className="qa-btn" onClick={a.onClick}>
@@ -491,9 +511,9 @@ export default function Home() {
                 </button>
               ))}
             </div>
-          </Card>
+          </Card>}
 
-          <Card title="Recent Leads" action={<button className="link-btn" onClick={() => navigate('/leads')}>View All <ArrowRight size={14} /></button>}>
+          {can.leads && <Card title="Recent Leads" action={<button className="link-btn" onClick={() => navigate('/leads')}>View All <ArrowRight size={14} /></button>}>
             {recentLeads.length === 0 ? (
               <EmptyState icon={Users} title="No leads yet" />
             ) : (
@@ -514,7 +534,7 @@ export default function Home() {
                 })}
               </ul>
             )}
-          </Card>
+          </Card>}
 
           <div className="promo">
             <div className="promo-text">

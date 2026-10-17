@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import bcrypt from 'bcryptjs'
-import { supabase } from '../lib/supabase'
+import { supabase, isLive } from '../lib/supabase'
 import { MODULES, getSession } from '../lib/auth'
 import toast from 'react-hot-toast'
 import { X, UserRound, Pencil, Ban, CircleCheck, Trash2 } from 'lucide-react'
@@ -121,6 +121,19 @@ function UserModal({ user, onSave, onClose }) {
   )
 }
 
+// Live mode: users are Supabase Auth accounts, so changes go through the
+// admin-users edge function (it holds the service key and checks you're admin).
+async function adminUsers(action, payload) {
+  const { data, error } = await supabase.functions.invoke('admin-users', { body: { action, ...payload } })
+  if (error) {
+    let msg = error.message
+    try { msg = (await error.context.json()).error || msg } catch { /* not JSON */ }
+    throw new Error(msg)
+  }
+  if (data?.error) throw new Error(data.error)
+  return data
+}
+
 export default function UserManagement() {
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
@@ -155,6 +168,21 @@ export default function UserManagement() {
       permissions: form.is_admin ? {} : form.permissions,
       active: !!form.active,
     }
+    if (isLive) {
+      try {
+        await adminUsers(editingUser ? 'update' : 'create', {
+          ...payload, ...(editingUser ? { id: editingUser.id } : {}), ...(form.password ? { password: form.password } : {}),
+        })
+        toast.success(editingUser ? 'User updated' : 'User created')
+        await fetchUsers()
+        setEditingUser(null)
+        setShowAdd(false)
+      } catch (e) {
+        toast.error(e.message)
+      }
+      return
+    }
+
     if (form.password) {
       payload.password_hash = bcrypt.hashSync(form.password, 10)
     }
@@ -191,6 +219,14 @@ export default function UserManagement() {
       toast.error("You can't deactivate your own account")
       return
     }
+    if (isLive) {
+      try {
+        await adminUsers('update', { id: u.id, active: !u.active })
+        toast.success(u.active ? 'User deactivated' : 'User activated')
+        await fetchUsers()
+      } catch (e) { toast.error(e.message) }
+      return
+    }
     const { error } = await supabase.from('app_users').update({ active: !u.active }).eq('id', u.id)
     if (error) {
       toast.error('Failed to update user')
@@ -207,6 +243,14 @@ export default function UserManagement() {
       return
     }
     if (!window.confirm(`Delete user "${u.username}"? This cannot be undone.`)) return
+    if (isLive) {
+      try {
+        await adminUsers('delete', { id: u.id })
+        toast.success('User deleted')
+        await fetchUsers()
+      } catch (e) { toast.error(e.message) }
+      return
+    }
     const { error } = await supabase.from('app_users').delete().eq('id', u.id)
     if (error) {
       toast.error('Failed to delete user')
@@ -278,6 +322,9 @@ export default function UserManagement() {
                             <div style={{ display: 'flex', flexDirection: 'column' }}>
                               <span style={{ fontWeight: 700, fontSize: 13.5 }}>{u.full_name}</span>
                               <span style={{ fontSize: 11.5, color: 'var(--text-dim)' }}>@{u.username}</span>
+                              {isLive && !u.auth_id && (
+                                <span style={{ fontSize: 11, color: 'var(--danger)' }}>No login yet — edit and set a password</span>
+                              )}
                             </div>
                           </div>
                         </td>

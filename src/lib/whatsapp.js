@@ -3,7 +3,6 @@
 // Meta access token). Demo mode: everything is simulated in localStorage so
 // the screens can be shown without a WhatsApp Business account.
 import { supabase, isLive } from './supabase'
-import { getSession } from './auth'
 import { BRAND } from './brand'
 
 // ── Phone numbers ──────────────────────────────────────────────────────────
@@ -89,7 +88,7 @@ export const paramsToValues = (params = []) => Object.fromEntries(params.map(p =
 async function invoke(action, payload = {}) {
   if (!isLive) return demoInvoke(action, payload)
   const { data, error } = await supabase.functions.invoke('whatsapp', {
-    body: { action, user_id: getSession()?.id, ...payload },
+    body: { action, ...payload },
   })
   if (error) {
     let msg = error.message

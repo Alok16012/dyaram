@@ -30,7 +30,7 @@ Settings → **Reset Demo Data** restores the original sample data.
 
 ## Going live (Supabase)
 
-1. Run `supabase-schema.sql` in the Supabase SQL editor.
+1. Run `supabase-schema.sql`, then `supabase-whatsapp.sql`, then `supabase-security.sql` in the Supabase SQL editor.
 2. Create a `.env` file:
 
 ```
@@ -71,3 +71,12 @@ supabase functions deploy whatsapp-webhook --no-verify-jwt
 5. Create templates in WhatsApp Manager; approved ones show up in the CRM automatically.
 
 Non-admin users need the **WhatsApp** permission (Users & Roles) to use the page.
+
+## Users, login & access control
+
+- Login uses **Supabase Auth**; each CRM user (`app_users`) is linked to an auth user (`auth_id`). Usernames without `@` log in as `<username>@staff.dayareharam.com` behind the scenes.
+- **Users & Roles** creates, edits, deactivates and deletes users through the `admin-users` edge function (admins only). Deploy it with `supabase functions deploy admin-users`.
+- Module checkboxes are enforced in the database by row level security (`supabase-security.sql`), not just hidden in the UI: a user only gets the tables of their modules. The dashboard and search only show sections the user can access.
+- Permission changes and deactivation take effect on the user's next page load; deactivation also signs them out.
+- Turn off public sign-ups in Supabase (Authentication → Providers → Email → "Allow new users to sign up").
+- The public booking form (`/booking/form/:token`) uses the `public_booking` / `public_update_booking` functions, so customers can only see and edit their own booking.

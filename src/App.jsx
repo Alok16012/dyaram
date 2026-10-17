@@ -98,8 +98,8 @@ export default function App() {
               <Route path="/leads" element={<ProtectedRoute module="leads"><Leads /></ProtectedRoute>} />
               <Route path="/bookings" element={<ProtectedRoute module="bookings"><Bookings /></ProtectedRoute>} />
               <Route path="/bookings/:id" element={<ProtectedRoute module="bookings"><BookingDetail /></ProtectedRoute>} />
-              <Route path="/customers" element={<ProtectedRoute module="leads"><Customers /></ProtectedRoute>} />
-              <Route path="/payments" element={<ProtectedRoute module="bookings"><Payments /></ProtectedRoute>} />
+              <Route path="/customers" element={<ProtectedRoute module="customers"><Customers /></ProtectedRoute>} />
+              <Route path="/payments" element={<ProtectedRoute module="payments"><Payments /></ProtectedRoute>} />
               <Route path="/whatsapp" element={<ProtectedRoute module="whatsapp"><WhatsApp /></ProtectedRoute>} />
 
               {/* ── Operations / Resources / Admin ── */}
