@@ -8,6 +8,7 @@
 // fallback route is "/" itself).
 export const MODULES = [
   { key: 'leads',      label: 'Leads',       path: '/leads' },
+  { key: 'whatsapp',   label: 'WhatsApp',    path: '/whatsapp' },
   { key: 'bookings',   label: 'Bookings',    path: '/bookings' },
   { key: 'itinerary',  label: 'Itinerary',   path: '/itinerary' },
   { key: 'invoices',   label: 'Invoices',    path: '/invoices' },

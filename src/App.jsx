@@ -37,6 +37,7 @@ const WebsitePackages = lazy(() => import('./pages/WebsitePackages'))
 const NewsletterSubscribers = lazy(() => import('./pages/NewsletterSubscribers'))
 const Customers = lazy(() => import('./pages/Customers'))
 const Payments  = lazy(() => import('./pages/Payments'))
+const WhatsApp  = lazy(() => import('./pages/whatsapp/WhatsApp'))
 
 // Auth & Public
 const Login       = lazy(() => import('./pages/Login'))
@@ -99,6 +100,7 @@ export default function App() {
               <Route path="/bookings/:id" element={<ProtectedRoute module="bookings"><BookingDetail /></ProtectedRoute>} />
               <Route path="/customers" element={<ProtectedRoute module="leads"><Customers /></ProtectedRoute>} />
               <Route path="/payments" element={<ProtectedRoute module="bookings"><Payments /></ProtectedRoute>} />
+              <Route path="/whatsapp" element={<ProtectedRoute module="whatsapp"><WhatsApp /></ProtectedRoute>} />
 
               {/* ── Operations / Resources / Admin ── */}
               <Route path="/invoices" element={<ProtectedRoute module="invoices"><Invoices /></ProtectedRoute>} />

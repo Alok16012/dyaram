@@ -9,7 +9,7 @@ import { BRAND, bookingRef } from './brand'
 import { artTile } from './artTiles'
 
 const DEMO_SEED_KEY = 'demo_seed_version'
-const DEMO_SEED_VERSION = 'dh-2'
+const DEMO_SEED_VERSION = 'dh-3'
 
 // Login: admin / admin123 (full access), sales / demo123, imran / demo123
 const ADMIN_HASH = '$2b$10$LIni/cQRHOqDOWnbW7lsC.gFwy/u98bAVRCYsz9Fa9Q02gp8mUCVe'
@@ -86,7 +86,7 @@ function hajjDays() {
 function buildDemoData() {
   const users = [
     { id: 'u-admin', username: 'admin', password_hash: ADMIN_HASH, full_name: 'Administrator', role: 'Admin', is_admin: true, permissions: {}, active: true, created_at: ago(300) },
-    { id: 'u-ayesha', username: 'sales', password_hash: DEMO_HASH, full_name: 'Ayesha Khan', role: 'Sales Executive', is_admin: false, permissions: { leads: true, bookings: true, itinerary: true, invoices: true }, active: true, created_at: ago(220) },
+    { id: 'u-ayesha', username: 'sales', password_hash: DEMO_HASH, full_name: 'Ayesha Khan', role: 'Sales Executive', is_admin: false, permissions: { leads: true, whatsapp: true, bookings: true, itinerary: true, invoices: true }, active: true, created_at: ago(220) },
     { id: 'u-imran', username: 'imran', password_hash: DEMO_HASH, full_name: 'Imran Sheikh', role: 'Operations', is_admin: false, permissions: { bookings: true, hotels: true, cabs: true, photos: true, expenses: true }, active: true, created_at: ago(180) },
   ]
   const owner = (i) => users[i % users.length]

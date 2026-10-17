@@ -27,6 +27,7 @@ const MOCK_TABLES = [
   'leads', 'lead_notes', 'bookings', 'payments', 'invoices',
   'hotels', 'cabs', 'income', 'expenses', 'audit_logs',
   'app_users', 'site_content',
+  'wa_campaigns', 'wa_messages', 'wa_automations', 'wa_sessions',
 ]
 
 // Embedded relations understood by `select('*, rel(...)')`.
@@ -38,7 +39,7 @@ const RELATIONS = {
 }
 
 // Primary key per table (defaults to `id`).
-const PKEYS = { site_content: 'key' }
+const PKEYS = { site_content: 'key', wa_automations: 'key', wa_sessions: 'phone' }
 
 function createMockClient() {
   const load = (table) => {
@@ -59,7 +60,7 @@ function createMockClient() {
     const now = new Date().toISOString()
     const row = { ...d }
     if (!PKEYS[table] && !row.id) row.id = crypto.randomUUID()
-    if (table !== 'site_content' && !row.created_at) row.created_at = now
+    if (!PKEYS[table] && !row.created_at) row.created_at = now
     if (table === 'bookings' && !row.booking_token) row.booking_token = crypto.randomUUID()
     return row
   }
@@ -212,7 +213,7 @@ const isDemo = !isLive
 // live and demo mode, so every screen stays fully usable in the demo.
 const isConfigured = true
 
-export { supabase, isConfigured, isLive, isDemo }
+export { supabase, supabaseUrl, isConfigured, isLive, isDemo }
 
 // ── Credential helpers (used by Admin page) ────────────────────────────────
 export function saveCredentials(url, key) {

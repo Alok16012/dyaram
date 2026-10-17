@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import { PageHeader, StatCard, Pill, Avatar, EmptyState, Pagination } from '../../components/ui'
 import { LEAD_TONE, fmtDate } from '../../lib/ui'
+import { hasAccess } from '../../lib/auth'
 
 // Strip everything except digits; prefix with country code if missing
 function cleanPhone(raw) {
@@ -339,6 +340,9 @@ export default function Leads() {
         title="Leads"
         subtitle={`${leads.length} travel inquiries in your pipeline`}
         actions={<>
+          {hasAccess('whatsapp') && (
+            <button className="btn btn-ghost" onClick={() => navigate(`/whatsapp?tab=bulk&stage=${filter}`)}><MessageCircle size={16} /> Bulk WhatsApp</button>
+          )}
           <button className="btn btn-ghost" onClick={exportCSV}><Download size={16} /> Export</button>
           <button className="btn btn-primary" onClick={() => setShowAdd(true)}><Plus size={17} /> New Lead</button>
         </>}

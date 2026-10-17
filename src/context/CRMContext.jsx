@@ -1,6 +1,6 @@
 // @refresh reset
 import React, { createContext, useContext, useReducer, useCallback, useRef } from 'react'
-import { supabase, isConfigured } from '../lib/supabase'
+import { supabase, isConfigured, isDemo } from '../lib/supabase'
 import { getSession } from '../lib/auth'
 import toast from 'react-hot-toast'
 
@@ -107,6 +107,8 @@ export function CRMProvider({ children }) {
       const saved = data || lead
       dispatch({ type: 'ADD_LEAD', payload: saved })
       toast.success('Lead saved!')
+      // Live: the leads insert trigger runs the WhatsApp welcome automation server-side.
+      if (isDemo) import('../lib/whatsapp').then(m => m.simulateLeadWelcome(saved)).catch(() => {})
       return saved
     } catch (err) {
       console.error('addLead error:', err)

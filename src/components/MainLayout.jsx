@@ -3,9 +3,9 @@ import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import {
   House, Users, CalendarCheck, UserRound, Map as MapIcon, FileText, CreditCard,
-  Hotel, Car, Images, Mail, Globe, Package, TrendingUp, Wallet,
+  Hotel, Car, Images, TrendingUp, Wallet,
   ScrollText, ShieldCheck, Settings, LogOut, Bell, Search, ChevronDown,
-  Menu, User,
+  Menu, User, MessageCircle,
 } from 'lucide-react'
 import { getSession, hasAccess, isAdmin, clearSession } from '../lib/auth'
 import { isDemo } from '../lib/supabase'
@@ -230,9 +230,7 @@ export default function MainLayout({ children, headerActions }) {
       { path: '/photos', label: 'Photos', icon: I(Images), module: 'photos' },
     ] },
     { label: 'Marketing', items: [
-      { path: '/newsletter', label: 'Newsletter', icon: I(Mail), module: 'leads' },
-      ...(admin ? [{ path: '/website-content', label: 'Website Content', icon: I(Globe) }] : []),
-      ...(admin ? [{ path: '/website-packages', label: 'Website Packages', icon: I(Package) }] : []),
+      { path: '/whatsapp', label: 'WhatsApp', icon: I(MessageCircle), module: 'whatsapp' },
     ] },
     { label: 'Reports', items: [
       { path: '/income', label: 'Revenue', icon: I(TrendingUp), module: 'income' },
