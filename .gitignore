@@ -27,3 +27,6 @@ dist-ssr
 
 # Supabase CLI local state
 supabase/.temp
+
+# Local Netlify folder
+.netlify
