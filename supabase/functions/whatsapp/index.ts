@@ -162,6 +162,14 @@ Deno.serve(async (req) => {
       case 'templates':  return json(await templates(!!body.all))
       case 'send_batch': return json(await sendBatch(db, body))
       case 'send_text':  return json(await sendStaffText(db, body))
+      case 'subscribe_webhook': {
+        // Links this app to the WhatsApp account so Meta sends incoming messages and delivery receipts.
+        if (!auth.isAdmin) return json({ error: 'Only admins can change the webhook' }, 403)
+        const before = await graph(`${env.wabaId}/subscribed_apps`)
+        const res = await graph(`${env.wabaId}/subscribed_apps`, { method: 'POST' })
+        const after = await graph(`${env.wabaId}/subscribed_apps`)
+        return json({ before: before.data, result: res, after: after.data })
+      }
       case 'create_template': return json(await createTemplate(body))
       case 'delete_template': return json(await deleteTemplate(body))
       default:           return json({ error: `Unknown action: ${body.action}` }, 400)
