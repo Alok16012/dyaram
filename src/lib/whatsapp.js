@@ -103,7 +103,11 @@ async function invoke(action, payload = {}) {
 }
 
 export const waStatus = () => invoke('status')
-export const waTemplates = async () => (await invoke('templates')).templates || []
+// all=true also returns pending / rejected templates (Templates screen).
+export const waTemplates = async (all = false) => (await invoke('templates', all ? { all: true } : {})).templates || []
+// template: { name, language, category, components } in Meta's format.
+export const waCreateTemplate = (template) => invoke('create_template', { template })
+export const waDeleteTemplate = (name) => invoke('delete_template', { name })
 // payload: { campaign_id, template: {name, language, header_format, header_media_url}, recipients: [...] }
 export const waSendBatch = (payload) => invoke('send_batch', payload)
 
@@ -252,9 +256,32 @@ const DEMO_TEMPLATES = [
 
 const sleep = (ms) => new Promise(r => setTimeout(r, ms))
 
+const DEMO_TPL_KEY = 'demo_wa_templates'
+function demoOwnTemplates() {
+  try { return JSON.parse(localStorage.getItem(DEMO_TPL_KEY) || '[]') } catch { return [] }
+}
+function saveDemoOwnTemplates(list) {
+  try { localStorage.setItem(DEMO_TPL_KEY, JSON.stringify(list)) } catch { /* storage full or blocked */ }
+}
+
 async function demoInvoke(action, payload) {
   if (action === 'status') return { connected: false, demo: true, config: {}, missing: [] }
-  if (action === 'templates') return { templates: DEMO_TEMPLATES }
+  if (action === 'templates') {
+    const own = demoOwnTemplates()
+    const all = [...DEMO_TEMPLATES, ...own]
+    return { templates: payload.all ? all : all.filter(t => t.status === 'APPROVED') }
+  }
+  if (action === 'create_template') {
+    const t = payload.template
+    const own = demoOwnTemplates().filter(x => x.name !== t.name)
+    // Demo: show it as approved straight away so it can be used in Bulk Send.
+    saveDemoOwnTemplates([...own, { ...t, status: 'APPROVED' }])
+    return { template: { id: `demo_${Date.now()}`, status: 'APPROVED', category: t.category } }
+  }
+  if (action === 'delete_template') {
+    saveDemoOwnTemplates(demoOwnTemplates().filter(x => x.name !== payload.name))
+    return { success: true }
+  }
   if (action === 'send_text') {
     const phone = normalizePhone(payload.to)
     if (!phone) throw new Error('Invalid phone number')

@@ -9,10 +9,12 @@ import Campaigns from './Campaigns'
 import Inbox from './Inbox'
 import Automations from './Automations'
 import Setup from './Setup'
+import Templates from './Templates'
 import './whatsapp.css'
 
 const TABS = [
   { id: 'bulk', label: 'Bulk Send' },
+  { id: 'templates', label: 'Templates' },
   { id: 'campaigns', label: 'Campaigns' },
   { id: 'automation', label: 'Automation' },
   { id: 'inbox', label: 'Inbox' },
@@ -98,6 +100,7 @@ export default function WhatsApp() {
       </div>
 
       {tab === 'bulk' && <BulkSend templates={templates} templatesLoading={templatesLoading} onSent={() => setRefreshKey(k => k + 1)} />}
+      {tab === 'templates' && <Templates onChanged={loadTemplates} />}
       {tab === 'campaigns' && <Campaigns refreshKey={refreshKey} />}
       {tab === 'automation' && <Automations templates={templates} templatesLoading={templatesLoading} />}
       {tab === 'inbox' && <Inbox refreshKey={refreshKey} />}

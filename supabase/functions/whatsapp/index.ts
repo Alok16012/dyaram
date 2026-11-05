@@ -17,7 +17,29 @@ const MAX_BATCH = 50
 // Caller must be a signed-in, active CRM user with the WhatsApp module.
 async function authorize(db: ReturnType<typeof admin>, req: Request) {
   const me = await callerAppUser(db, req)
-  return !!me && (me.is_admin || !!me.permissions?.whatsapp)
+  return { ok: !!me && (me.is_admin || !!me.permissions?.whatsapp), isAdmin: !!me?.is_admin }
+}
+
+// Submit a message template to Meta for approval (admins only).
+// body: { name, language, category, components } in Graph API format.
+async function createTemplate(body: any) {
+  const missing = missingConfig(true)
+  if (missing.length) throw new Error(`Missing secrets: ${missing.join(', ')}`)
+  const t = body.template ?? {}
+  if (!/^[a-z0-9_]{1,512}$/.test(t.name ?? '')) throw new Error('Template name must be lowercase letters, numbers and _')
+  const res = await graph(`${env.wabaId}/message_templates`, {
+    method: 'POST',
+    body: JSON.stringify({ name: t.name, language: t.language || 'en', category: t.category || 'MARKETING', components: t.components ?? [] }),
+  })
+  return { template: res }
+}
+
+async function deleteTemplate(body: any) {
+  const missing = missingConfig(true)
+  if (missing.length) throw new Error(`Missing secrets: ${missing.join(', ')}`)
+  const name = String(body.name ?? '')
+  if (!/^[a-z0-9_]{1,512}$/.test(name)) throw new Error('Invalid template name')
+  return graph(`${env.wabaId}/message_templates?name=${encodeURIComponent(name)}`, { method: 'DELETE' })
 }
 
 function missingConfig(needWaba = false) {
@@ -43,18 +65,20 @@ async function status() {
   }
 }
 
-async function templates() {
+// Approved templates by default; `all` also returns pending / rejected ones
+// (with Meta's rejection reason) for the Templates screen.
+async function templates(all = false) {
   const missing = missingConfig(true)
   if (missing.length) throw new Error(`Missing secrets: ${missing.join(', ')}`)
   const out: unknown[] = []
-  let path: string | null = `${env.wabaId}/message_templates?fields=name,language,status,category,components&limit=100`
+  let path: string | null = `${env.wabaId}/message_templates?fields=name,language,status,category,components,rejected_reason,quality_score&limit=100`
   while (path && out.length < 1000) {
     const page = await graph(path)
     out.push(...(page.data ?? []))
     const next: string | undefined = page.paging?.next
     path = next ? next.replace(/^https:\/\/graph\.facebook\.com\/[^/]+\//, '') : null
   }
-  return { templates: out.filter((t: any) => t.status === 'APPROVED') }
+  return { templates: all ? out : out.filter((t: any) => t.status === 'APPROVED') }
 }
 
 async function sendBatch(db: ReturnType<typeof admin>, body: any) {
@@ -127,13 +151,19 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(() => ({}))
     const db = admin()
-    if (!(await authorize(db, req))) return json({ error: 'Not allowed to use WhatsApp' }, 403)
+    const auth = await authorize(db, req)
+    if (!auth.ok) return json({ error: 'Not allowed to use WhatsApp' }, 403)
+    if ((body.action === 'create_template' || body.action === 'delete_template') && !auth.isAdmin) {
+      return json({ error: 'Only admins can create or delete templates' }, 403)
+    }
 
     switch (body.action) {
       case 'status':     return json(await status())
-      case 'templates':  return json(await templates())
+      case 'templates':  return json(await templates(!!body.all))
       case 'send_batch': return json(await sendBatch(db, body))
       case 'send_text':  return json(await sendStaffText(db, body))
+      case 'create_template': return json(await createTemplate(body))
+      case 'delete_template': return json(await deleteTemplate(body))
       default:           return json({ error: `Unknown action: ${body.action}` }, 400)
     }
   } catch (e) {
