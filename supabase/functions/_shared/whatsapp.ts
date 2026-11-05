@@ -51,7 +51,8 @@ export async function graph(path: string, init: RequestInit = {}) {
   const body = await res.json().catch(() => ({}))
   if (!res.ok || body.error) {
     const e = body.error ?? {}
-    const detail = e.error_data?.details ? ` — ${e.error_data.details}` : ''
+    const extra = e.error_user_msg ?? e.error_data?.details ?? (typeof e.error_data === 'string' ? e.error_data : '')
+    const detail = extra ? ` — ${extra}` : ''
     throw new Error(`${e.message ?? `HTTP ${res.status}`}${e.code ? ` (code ${e.code})` : ''}${detail}`)
   }
   return body

@@ -71,7 +71,7 @@ async function templates(all = false) {
   const missing = missingConfig(true)
   if (missing.length) throw new Error(`Missing secrets: ${missing.join(', ')}`)
   const out: unknown[] = []
-  let path: string | null = `${env.wabaId}/message_templates?fields=name,language,status,category,components,rejected_reason,quality_score&limit=100`
+  let path: string | null = `${env.wabaId}/message_templates?fields=name,language,status,category,components,rejected_reason&limit=100`
   while (path && out.length < 1000) {
     const page = await graph(path)
     out.push(...(page.data ?? []))
