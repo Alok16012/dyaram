@@ -42,6 +42,7 @@ const WhatsApp  = lazy(() => import('./pages/whatsapp/WhatsApp'))
 // Auth & Public
 const Login       = lazy(() => import('./pages/Login'))
 const BookingForm = lazy(() => import('./pages/BookingForm'))
+const Privacy     = lazy(() => import('./pages/Privacy'))
 
 // Layout
 import MainLayout from './components/MainLayout'
@@ -84,6 +85,7 @@ export default function App() {
               {/* ── Public ── */}
               <Route path="/login" element={<Login />} />
               <Route path="/booking/form/:token" element={<BookingForm />} />
+              <Route path="/privacy" element={<Privacy />} />
 
               {/* ── Protected Dashboard ── */}
               <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
