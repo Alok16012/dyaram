@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { Users, CalendarCheck, ClipboardList, Send, FlaskConical, Square, AlertTriangle, CheckCircle2 } from 'lucide-react'
+import { Users, CalendarCheck, ClipboardList, Send, FlaskConical, Square, AlertTriangle, CheckCircle2, FileSpreadsheet, Download } from 'lucide-react'
 import { useCRM, LEAD_STAGES, LEAD_SOURCES } from '../../context/CRMContext'
 import { useBooking } from '../../context/BookingContext'
 import { supabase } from '../../lib/supabase'
@@ -16,7 +16,7 @@ import { TemplateSelect, VariableMapper, WaPreview } from './shared'
 const AUDIENCES = [
   { id: 'leads', label: 'Leads', icon: Users },
   { id: 'customers', label: 'Booked customers', icon: CalendarCheck },
-  { id: 'paste', label: 'Paste numbers', icon: ClipboardList },
+  { id: 'paste', label: 'Paste / Excel', icon: ClipboardList },
 ]
 
 // "9876543210, Rahul Khan" or "Rahul Khan - +91 98765 43210" → { phone, name }
@@ -27,6 +27,87 @@ function parsePasted(text) {
     const name = line.replace(m[0], '').replace(/^[\s,;:\-|]+|[\s,;:\-|]+$/g, '').trim()
     return { phone: m[0], name }
   }).filter(Boolean)
+}
+
+// ── Excel / CSV import ──
+const PHONE_HEAD = /phone|mobile|\bmob\b|number|whats|contact|cell|फोन|मोबाइल|नंबर/i
+const NAME_HEAD = /name|naam|customer|नाम/i
+
+function parseCsv(text) {
+  const sep = [',', ';', '\t'].reduce((a, b) => (text.split(b).length > text.split(a).length ? b : a))
+  return text.split(/\r?\n/).filter(l => l.trim()).map(line => {
+    const cells = []
+    let cur = '', quoted = false
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i]
+      if (ch === '"') { if (quoted && line[i + 1] === '"') { cur += '"'; i++ } else quoted = !quoted }
+      else if (ch === sep && !quoted) { cells.push(cur); cur = '' }
+      else cur += ch
+    }
+    cells.push(cur)
+    return cells.map(c => c.trim())
+  })
+}
+
+const cellText = v => (v == null ? '' : v instanceof Date ? '' : String(v).trim())
+const looksLikePhone = v => !!normalizePhone((cellText(v).match(/\+?\d[\d\s-]{8,}\d/) || [])[0])
+
+// Finds the phone and name columns (by header text, else by content) and
+// returns "phone, name" lines for the paste box.
+function rowsToLines(rows) {
+  rows = rows.filter(r => r && r.some(c => cellText(c)))
+  if (!rows.length) return []
+  const width = Math.max(...rows.map(r => r.length))
+  let start = 0, phoneCol = -1, nameCol = -1
+  const headIdx = rows.slice(0, 5).findIndex(r => r.some(c => PHONE_HEAD.test(cellText(c)) && !looksLikePhone(c)))
+  if (headIdx >= 0) {
+    const head = rows[headIdx].map(cellText)
+    start = headIdx + 1
+    phoneCol = head.findIndex(h => /whats/i.test(h))
+    if (phoneCol < 0) phoneCol = head.findIndex(h => PHONE_HEAD.test(h))
+    nameCol = head.findIndex(h => NAME_HEAD.test(h))
+  }
+  const body = rows.slice(start)
+  const score = (col, fn) => body.filter(r => fn(r[col])).length
+  if (phoneCol < 0 || score(phoneCol, looksLikePhone) === 0) {
+    let best = 0
+    for (let c = 0; c < width; c++) { const n = score(c, looksLikePhone); if (n > best) { best = n; phoneCol = c } }
+    if (!best) return []
+  }
+  if (nameCol < 0 || nameCol === phoneCol) {
+    let best = 0
+    nameCol = -1
+    for (let c = 0; c < width; c++) {
+      if (c === phoneCol) continue
+      const n = score(c, v => /\p{L}/u.test(cellText(v)) && !looksLikePhone(v))
+      if (n > best) { best = n; nameCol = c }
+    }
+  }
+  return body.map(r => {
+    const phone = (cellText(r[phoneCol]).match(/\+?\d[\d\s-]{8,}\d/) || [])[0]
+    if (!phone) return null
+    const name = nameCol >= 0 ? cellText(r[nameCol]).replace(/[\d,]+/g, ' ').replace(/\s+/g, ' ').trim() : ''
+    return name ? `${phone}, ${name}` : phone
+  }).filter(Boolean)
+}
+
+async function readContactsFile(file) {
+  const ext = file.name.split('.').pop().toLowerCase()
+  if (ext === 'csv' || ext === 'txt') return rowsToLines(parseCsv(await file.text()))
+  if (ext === 'xlsx') {
+    const { readSheet } = await import('read-excel-file/browser')
+    return rowsToLines(await readSheet(file))
+  }
+  throw new Error('Please upload an .xlsx or .csv file (for old .xls files, open in Excel and "Save As" .xlsx)')
+}
+
+function downloadSample() {
+  const csv = 'Name,Phone\nRahul Khan,9876543210\nAyesha Begum,+91 98765 43211\n'
+  const a = document.createElement('a')
+  a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }))
+  a.download = 'whatsapp-contacts-sample.csv'
+  a.click()
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000)
 }
 
 const toggleIn = (arr, v) => (arr.includes(v) ? arr.filter(x => x !== v) : [...arr, v])
@@ -48,6 +129,25 @@ export default function BulkSend({ templates, templatesLoading, onSent }) {
   const [to, setTo] = useState('')
   const [bStatuses, setBStatuses] = useState([])
   const [pasted, setPasted] = useState('')
+  const [importing, setImporting] = useState(false)
+  const fileRef = useRef(null)
+
+  const importFile = async (file) => {
+    if (!file) return
+    setImporting(true)
+    try {
+      const lines = await readContactsFile(file)
+      if (!lines.length) throw new Error('No phone numbers found in this file')
+      setPasted(lines.join('\n'))
+      setExcluded(new Set())
+      toast.success(`${lines.length} number${lines.length === 1 ? '' : 's'} imported from ${file.name}`)
+    } catch (e) {
+      toast.error(e.message || 'Could not read the file')
+    } finally {
+      setImporting(false)
+      if (fileRef.current) fileRef.current.value = ''
+    }
+  }
   const [excluded, setExcluded] = useState(() => new Set())
 
   useEffect(() => { fetchLeads(); fetchBookings() }, [fetchLeads, fetchBookings])
@@ -258,6 +358,14 @@ export default function BulkSend({ templates, templatesLoading, onSent }) {
 
           {audience === 'paste' && (
             <div className="form-field">
+              <div className="wa-import-row">
+                <input ref={fileRef} type="file" accept=".xlsx,.csv,.txt" hidden onChange={e => importFile(e.target.files?.[0])} />
+                <button type="button" className="btn btn-ghost" onClick={() => fileRef.current?.click()} disabled={importing}>
+                  <FileSpreadsheet size={15} /> {importing ? 'Reading file…' : 'Upload Excel / CSV'}
+                </button>
+                <button type="button" className="wa-link-btn" onClick={downloadSample}><Download size={13} /> Sample file</button>
+                <span className="dim">Needs a phone column; a name column is optional.</span>
+              </div>
               <label>One number per line, optionally with a name</label>
               <textarea className="glass-input" rows={6} value={pasted} onChange={e => setPasted(e.target.value)}
                 placeholder={'9876543210, Rahul Khan\n+91 98765 43211 Ayesha\n919812345678'} />
