@@ -119,3 +119,17 @@ end $$;
 drop trigger if exists leads_whatsapp_welcome on leads;
 create trigger leads_whatsapp_welcome after insert on leads
   for each row execute function notify_whatsapp_new_lead();
+
+-- ── Template header images ──────────────────────────────────────────────────
+-- Default header image for image templates, keyed "<name>::<language>".
+-- Written by the whatsapp edge function when a template is created.
+create table if not exists public.wa_template_media (
+  key text primary key,
+  url text not null,
+  updated_at timestamptz default now()
+);
+
+-- Public bucket for WhatsApp header images (WhatsApp fetches them by URL).
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('wa-media', 'wa-media', true, 5242880, array['image/jpeg','image/png'])
+on conflict (id) do update set public = true, file_size_limit = 5242880, allowed_mime_types = array['image/jpeg','image/png'];

@@ -106,8 +106,33 @@ export const waStatus = () => invoke('status')
 // all=true also returns pending / rejected templates (Templates screen).
 export const waTemplates = async (all = false) => (await invoke('templates', all ? { all: true } : {})).templates || []
 // template: { name, language, category, components } in Meta's format.
-export const waCreateTemplate = (template) => invoke('create_template', { template })
+// mediaUrl: default header image for an image template (prefilled in Bulk Send).
+export const waCreateTemplate = (template, mediaUrl = null) => invoke('create_template', { template, media_url: mediaUrl })
 export const waDeleteTemplate = (name) => invoke('delete_template', { name })
+
+export const IMAGE_TYPES = ['image/jpeg', 'image/png']
+export const MAX_IMAGE_MB = 5
+
+const fileToBase64 = (file) => new Promise((resolve, reject) => {
+  const r = new FileReader()
+  r.onload = () => resolve(String(r.result).split(',')[1] || '')
+  r.onerror = () => reject(new Error('Could not read the file'))
+  r.readAsDataURL(file)
+})
+
+// Uploads a header image. Returns { url } (public link WhatsApp downloads) and,
+// with forTemplate, { handle } that Meta needs to review a new image template.
+export async function waUploadImage(file, { forTemplate = false } = {}) {
+  if (!IMAGE_TYPES.includes(file.type)) throw new Error('Please choose a JPG or PNG image')
+  if (file.size > MAX_IMAGE_MB * 1024 * 1024) throw new Error(`Image must be ${MAX_IMAGE_MB} MB or smaller`)
+  return invoke('upload_media', { filename: file.name, mime: file.type, data: await fileToBase64(file), for_template: forTemplate })
+}
+
+// Default header image per template: { "<name>::<language>": url }
+export async function getTemplateMedia() {
+  const { data } = await supabase.from('wa_template_media').select('key, url')
+  return Object.fromEntries((data || []).map(r => [r.key, r.url]))
+}
 // payload: { campaign_id, template: {name, language, header_format, header_media_url}, recipients: [...] }
 export const waSendBatch = (payload) => invoke('send_batch', payload)
 
@@ -271,8 +296,15 @@ async function demoInvoke(action, payload) {
     const all = [...DEMO_TEMPLATES, ...own]
     return { templates: payload.all ? all : all.filter(t => t.status === 'APPROVED') }
   }
+  if (action === 'upload_media') {
+    // Demo: keep the picture in the browser as a data URL.
+    return { url: `data:${payload.mime};base64,${payload.data}`, handle: payload.for_template ? 'demo-handle' : null }
+  }
   if (action === 'create_template') {
     const t = payload.template
+    if (payload.media_url) {
+      await supabase.from('wa_template_media').upsert([{ key: `${t.name}::${t.language || 'en'}`, url: payload.media_url }], { onConflict: 'key' })
+    }
     const own = demoOwnTemplates().filter(x => x.name !== t.name)
     // Demo: show it as approved straight away so it can be used in Bulk Send.
     saveDemoOwnTemplates([...own, { ...t, status: 'APPROVED' }])

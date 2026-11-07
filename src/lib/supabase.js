@@ -27,7 +27,7 @@ const MOCK_TABLES = [
   'leads', 'lead_notes', 'bookings', 'payments', 'invoices',
   'hotels', 'cabs', 'income', 'expenses', 'audit_logs',
   'app_users', 'site_content',
-  'wa_campaigns', 'wa_messages', 'wa_automations', 'wa_sessions',
+  'wa_campaigns', 'wa_messages', 'wa_automations', 'wa_sessions', 'wa_template_media',
 ]
 
 // Embedded relations understood by `select('*, rel(...)')`.
@@ -39,7 +39,7 @@ const RELATIONS = {
 }
 
 // Primary key per table (defaults to `id`).
-const PKEYS = { site_content: 'key', wa_automations: 'key', wa_sessions: 'phone' }
+const PKEYS = { site_content: 'key', wa_automations: 'key', wa_sessions: 'phone', wa_template_media: 'key' }
 
 function createMockClient() {
   const load = (table) => {

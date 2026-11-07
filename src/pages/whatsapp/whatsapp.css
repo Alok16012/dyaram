@@ -157,3 +157,11 @@
   color: var(--primary); font: inherit; font-weight: 500; cursor: pointer;
 }
 .wa-link-btn:hover { text-decoration: underline; }
+
+/* Template header: text / image switch and image picker */
+.wa-chip { display: inline-flex; align-items: center; gap: 4px; }
+.wa-chip.active { border-style: solid; border-color: var(--primary); color: var(--primary); background: var(--info-bg); font-weight: 500; }
+.wa-image-pick { display: flex; align-items: flex-start; gap: 12px; }
+.wa-image-thumb { width: 120px; aspect-ratio: 1.91 / 1; object-fit: cover; border-radius: 8px; border: 1px solid var(--border-glass); flex-shrink: 0; }
+.wa-image-thumb.sm { width: 72px; display: block; margin-bottom: 4px; }
+.wa-media-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }

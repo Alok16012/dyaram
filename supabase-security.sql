@@ -154,3 +154,8 @@ end $$;
 
 revoke all on function public.public_booking(text), public.public_update_booking(text, jsonb) from public;
 grant execute on function public.public_booking(text), public.public_update_booking(text, jsonb) to anon, authenticated;
+
+-- Template header images: readable by WhatsApp users, written only by the edge function.
+alter table public.wa_template_media enable row level security;
+drop policy if exists wa_template_media_read on public.wa_template_media;
+create policy wa_template_media_read on public.wa_template_media for select using (public.has_perm('whatsapp'));

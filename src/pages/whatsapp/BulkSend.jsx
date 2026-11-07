@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { Users, CalendarCheck, ClipboardList, Send, FlaskConical, Square, AlertTriangle, CheckCircle2, FileSpreadsheet, Download } from 'lucide-react'
+import { Users, CalendarCheck, ClipboardList, Send, FlaskConical, Square, AlertTriangle, CheckCircle2, FileSpreadsheet, Download, ImagePlus } from 'lucide-react'
 import { useCRM, LEAD_STAGES, LEAD_SOURCES } from '../../context/CRMContext'
 import { useBooking } from '../../context/BookingContext'
 import { supabase } from '../../lib/supabase'
@@ -9,7 +9,7 @@ import { getSession } from '../../lib/auth'
 import { BOOKING_TONE } from '../../lib/ui'
 import {
   normalizePhone, formatPhone, parseTemplate, defaultMapping, personVars, resolveParams,
-  paramsToValues, renderText, waSendBatch, BATCH_SIZE,
+  paramsToValues, renderText, waSendBatch, BATCH_SIZE, waUploadImage, getTemplateMedia,
 } from '../../lib/whatsapp'
 import { TemplateSelect, VariableMapper, WaPreview } from './shared'
 
@@ -198,13 +198,31 @@ export default function BulkSend({ templates, templatesLoading, onSent }) {
   const [bodyMap, setBodyMap] = useState([])
   const [headerMap, setHeaderMap] = useState([])
   const [mediaUrl, setMediaUrl] = useState('')
+  const [templateMedia, setTemplateMedia] = useState({})
+  const [uploadingImage, setUploadingImage] = useState(false)
+  const imageRef = useRef(null)
+
+  useEffect(() => { getTemplateMedia().then(setTemplateMedia).catch(() => {}) }, [])
+
+  const uploadImage = async (file) => {
+    if (!file) return
+    setUploadingImage(true)
+    try {
+      setMediaUrl((await waUploadImage(file)).url)
+    } catch (e) {
+      toast.error(e.message)
+    } finally {
+      setUploadingImage(false)
+      if (imageRef.current) imageRef.current.value = ''
+    }
+  }
 
   const chooseTemplate = (key) => {
     setTplKey(key)
     const t = parsed.find(x => x.key === key)
     setBodyMap(defaultMapping(t?.bodyVars || []))
     setHeaderMap((t?.headerVars || []).map(name => ({ name, source: 'custom', custom: '' })))
-    setMediaUrl('')
+    setMediaUrl(templateMedia[key] || '')
   }
 
   const sample = recipients[0] || { name: 'Rahul Khan', destination: 'Umrah Package', phone: '919800000000' }
@@ -215,7 +233,9 @@ export default function BulkSend({ templates, templatesLoading, onSent }) {
   const problems = []
   if (!tpl) problems.push('Choose a template')
   if (tpl && [...bodyMap, ...headerMap].some(m => m.source === 'custom' && !m.custom?.trim())) problems.push('Fill all fixed-text variables')
-  if (tpl && tpl.headerFormat && tpl.headerFormat !== 'TEXT' && !/^https:\/\//.test(mediaUrl)) problems.push(`Add a public https ${tpl.headerFormat.toLowerCase()} URL for the header`)
+  if (tpl && tpl.headerFormat && tpl.headerFormat !== 'TEXT' && !/^https:\/\/|^data:image\//.test(mediaUrl)) {
+    problems.push(tpl.headerFormat === 'IMAGE' ? 'Upload the header image' : `Add a public https ${tpl.headerFormat.toLowerCase()} link for the header`)
+  }
 
   const buildRecipient = (r) => {
     const vars = personVars(r)
@@ -417,15 +437,25 @@ export default function BulkSend({ templates, templatesLoading, onSent }) {
         <div className="wa-section">
           <div className="wa-step"><span className="wa-step-num">2</span><h4>Message template</h4></div>
           <p className="wa-hint" style={{ marginTop: -6, marginBottom: 12 }}>
-            WhatsApp only allows Meta-approved templates for messages you start. Create them in WhatsApp Manager → Message templates.
+            WhatsApp only allows Meta-approved templates for messages you start. Create them in the Templates tab.
           </p>
           <div className="form-field mb-16">
             <TemplateSelect templates={parsed} value={tplKey} onChange={chooseTemplate} loading={templatesLoading} />
           </div>
           {tpl?.headerFormat && tpl.headerFormat !== 'TEXT' && (
             <div className="form-field mb-16">
-              <label>Header {tpl.headerFormat.toLowerCase()} URL (public https link)</label>
-              <input className="glass-input" value={mediaUrl} onChange={e => setMediaUrl(e.target.value.trim())} placeholder="https://…/umrah-offer.jpg" />
+              <label>Header {tpl.headerFormat.toLowerCase()}</label>
+              {tpl.headerFormat === 'IMAGE' && (
+                <div className="wa-media-row" style={{ marginBottom: 6 }}>
+                  <input ref={imageRef} type="file" accept="image/jpeg,image/png" hidden onChange={e => uploadImage(e.target.files?.[0])} />
+                  {/^https:\/\/|^data:image\//.test(mediaUrl) && <img src={mediaUrl} alt="" className="wa-image-thumb" />}
+                  <button type="button" className="btn btn-ghost btn-sm" onClick={() => imageRef.current?.click()} disabled={uploadingImage}>
+                    <ImagePlus size={14} /> {uploadingImage ? 'Uploading…' : mediaUrl ? 'Change image' : 'Upload image'}
+                  </button>
+                </div>
+              )}
+              <input className="glass-input" value={mediaUrl} onChange={e => setMediaUrl(e.target.value.trim())}
+                placeholder={tpl.headerFormat === 'IMAGE' ? '…or paste a public https link to a JPG/PNG' : 'Public https link, e.g. https://…/itinerary.pdf'} />
             </div>
           )}
           {headerMap.length > 0 && (<><label className="form-label">Header variables</label><VariableMapper mapping={headerMap} onChange={setHeaderMap} /></>)}

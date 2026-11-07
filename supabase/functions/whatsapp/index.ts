@@ -22,7 +22,8 @@ async function authorize(db: ReturnType<typeof admin>, req: Request) {
 
 // Submit a message template to Meta for approval (admins only).
 // body: { name, language, category, components } in Graph API format.
-async function createTemplate(body: any) {
+// body.media_url (optional): public image saved as the default header for Bulk Send.
+async function createTemplate(db: ReturnType<typeof admin>, body: any) {
   const missing = missingConfig(true)
   if (missing.length) throw new Error(`Missing secrets: ${missing.join(', ')}`)
   const t = body.template ?? {}
@@ -31,15 +32,70 @@ async function createTemplate(body: any) {
     method: 'POST',
     body: JSON.stringify({ name: t.name, language: t.language || 'en', category: t.category || 'MARKETING', components: t.components ?? [] }),
   })
+  if (/^https:\/\//.test(body.media_url ?? '')) {
+    const { error } = await db.from('wa_template_media').upsert({
+      key: `${t.name}::${t.language || 'en'}`, url: body.media_url, updated_at: new Date().toISOString(),
+    })
+    if (error) console.error('wa_template_media upsert failed', error.message)
+  }
   return { template: res }
 }
 
-async function deleteTemplate(body: any) {
+const MEDIA_TYPES: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png' }
+const MAX_IMAGE = 5 * 1024 * 1024
+
+// Meta app id, needed for the resumable upload API (from the token itself).
+let appIdCache = Deno.env.get('WHATSAPP_APP_ID') ?? ''
+async function appId() {
+  if (!appIdCache) {
+    const d = await graph(`debug_token?input_token=${env.token}`)
+    appIdCache = String(d.data?.app_id ?? '')
+    if (!appIdCache) throw new Error('Could not read the Meta app id from the token')
+  }
+  return appIdCache
+}
+
+// Uploads a sample file to Meta and returns the handle a template needs for
+// review (example.header_handle).
+async function metaUploadHandle(bytes: Uint8Array, mime: string, name: string) {
+  const session = await graph(`${await appId()}/uploads?file_name=${encodeURIComponent(name)}&file_length=${bytes.length}&file_type=${encodeURIComponent(mime)}`, { method: 'POST' })
+  const res = await fetch(`https://graph.facebook.com/${env.apiVersion}/${session.id}`, {
+    method: 'POST',
+    headers: { Authorization: `OAuth ${env.token}`, file_offset: '0' },
+    body: bytes,
+  })
+  const out = await res.json().catch(() => ({}))
+  if (!res.ok || !out.h) throw new Error(out.error?.message ?? `Meta upload failed (HTTP ${res.status})`)
+  return out.h as string
+}
+
+// body: { filename, mime, data (base64), for_template? }
+// Stores the image in the public wa-media bucket (WhatsApp fetches header images
+// by URL) and, for a new template, also uploads it to Meta for review.
+async function uploadMedia(db: ReturnType<typeof admin>, body: any) {
+  const mime = String(body.mime ?? '')
+  const ext = MEDIA_TYPES[mime]
+  if (!ext) throw new Error('Only JPG or PNG images are allowed')
+  const bytes = Uint8Array.from(atob(String(body.data ?? '')), c => c.charCodeAt(0))
+  if (!bytes.length) throw new Error('Empty file')
+  if (bytes.length > MAX_IMAGE) throw new Error('Image must be 5 MB or smaller')
+  const base = String(body.filename ?? 'image').replace(/\.[^.]*$/, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'image'
+  const path = `${new Date().toISOString().slice(0, 10)}/${crypto.randomUUID().slice(0, 8)}-${base}.${ext}`
+  const { error } = await db.storage.from('wa-media').upload(path, bytes, { contentType: mime, upsert: false })
+  if (error) throw new Error(`Could not save the image: ${error.message}`)
+  const url = db.storage.from('wa-media').getPublicUrl(path).data.publicUrl
+  const handle = body.for_template ? await metaUploadHandle(bytes, mime, `${base}.${ext}`) : null
+  return { url, handle }
+}
+
+async function deleteTemplate(db: ReturnType<typeof admin>, body: any) {
   const missing = missingConfig(true)
   if (missing.length) throw new Error(`Missing secrets: ${missing.join(', ')}`)
   const name = String(body.name ?? '')
   if (!/^[a-z0-9_]{1,512}$/.test(name)) throw new Error('Invalid template name')
-  return graph(`${env.wabaId}/message_templates?name=${encodeURIComponent(name)}`, { method: 'DELETE' })
+  const res = await graph(`${env.wabaId}/message_templates?name=${encodeURIComponent(name)}`, { method: 'DELETE' })
+  await db.from('wa_template_media').delete().like('key', `${name}::%`)
+  return res
 }
 
 function missingConfig(needWaba = false) {
@@ -153,7 +209,9 @@ Deno.serve(async (req) => {
     const db = admin()
     const auth = await authorize(db, req)
     if (!auth.ok) return json({ error: 'Not allowed to use WhatsApp' }, 403)
-    if ((body.action === 'create_template' || body.action === 'delete_template') && !auth.isAdmin) {
+    const templateAdmin = body.action === 'create_template' || body.action === 'delete_template' ||
+      (body.action === 'upload_media' && body.for_template)
+    if (templateAdmin && !auth.isAdmin) {
       return json({ error: 'Only admins can create or delete templates' }, 403)
     }
 
@@ -170,8 +228,9 @@ Deno.serve(async (req) => {
         const after = await graph(`${env.wabaId}/subscribed_apps`)
         return json({ before: before.data, result: res, after: after.data })
       }
-      case 'create_template': return json(await createTemplate(body))
-      case 'delete_template': return json(await deleteTemplate(body))
+      case 'upload_media': return json(await uploadMedia(db, body))
+      case 'create_template': return json(await createTemplate(db, body))
+      case 'delete_template': return json(await deleteTemplate(db, body))
       default:           return json({ error: `Unknown action: ${body.action}` }, 400)
     }
   } catch (e) {

@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import toast from 'react-hot-toast'
-import { FileText, Plus, RefreshCw, Trash2, Send, X, Info } from 'lucide-react'
+import { FileText, Plus, RefreshCw, Trash2, Send, X, Info, ImagePlus, Type } from 'lucide-react'
 import { isAdmin } from '../../lib/auth'
-import { parseTemplate, waCreateTemplate, waDeleteTemplate, waTemplates } from '../../lib/whatsapp'
+import { parseTemplate, waCreateTemplate, waDeleteTemplate, waTemplates, waUploadImage, getTemplateMedia, MAX_IMAGE_MB } from '../../lib/whatsapp'
 import { EmptyState, Pill } from '../../components/ui'
 import { WaPreview } from './shared'
 
@@ -21,7 +21,7 @@ const varsIn = (text) => [...new Set([...String(text).matchAll(VAR_RE)].map(m =>
 
 const EMPTY = {
   title: '', name: '', category: 'MARKETING', language: 'en',
-  header: '', headerExample: '',
+  headerType: 'TEXT', header: '', headerExample: '', image: null,
   body: 'Assalamu Alaikum {{1}},\n\n', examples: { 1: 'Rahul' },
   footer: 'Reply STOP to unsubscribe',
   quickReplies: [], urlText: '', url: '', callText: '', phone: '',
@@ -33,6 +33,11 @@ const STARTERS = [
     label: 'Umrah offer', title: 'Umrah package offer', category: 'MARKETING',
     header: 'Umrah Packages Open',
     body: 'Assalamu Alaikum {{1}},\n\nBookings are now open for our *{{2}}* package. It includes visa, flights, hotels near the Haram and Ziyarat, with an experienced group leader.\n\nReply *YES* to receive the full itinerary and price.',
+    examples: { 1: 'Rahul', 2: 'Economy Umrah 15 Days' }, quickReplies: ['Send details', 'Call me'],
+  },
+  {
+    label: 'Offer with photo', title: 'Umrah offer photo', category: 'MARKETING', headerType: 'IMAGE', header: '',
+    body: 'Assalamu Alaikum {{1}},\n\nOur *{{2}}* package is now open for booking. Visa, flights, hotels near the Haram and Ziyarat included.\n\nReply *YES* for the full itinerary and price.',
     examples: { 1: 'Rahul', 2: 'Economy Umrah 15 Days' }, quickReplies: ['Send details', 'Call me'],
   },
   {
@@ -56,7 +61,9 @@ const STARTERS = [
 function toMeta(f) {
   const components = []
   const hv = varsIn(f.header)
-  if (f.header.trim()) {
+  if (f.headerType === 'IMAGE') {
+    components.push({ type: 'HEADER', format: 'IMAGE', ...(f.image?.handle ? { example: { header_handle: [f.image.handle] } } : {}) })
+  } else if (f.header.trim()) {
     components.push({
       type: 'HEADER', format: 'TEXT', text: f.header.trim(),
       ...(hv.length ? { example: { header_text: [f.headerExample || 'Sample'] } } : {}),
@@ -88,6 +95,7 @@ function validate(f, existing) {
   if (bv.some((n, i) => n !== i + 1)) errs.push('Body variables must be numbered {{1}}, {{2}}, {{3}}… with no gaps.')
   if (/^\{\{\s*\d+\s*\}\}/.test(body) || /\{\{\s*\d+\s*\}\}[.!?]?$/.test(body)) errs.push('Meta rejects a body that starts or ends with a variable — add some words before/after it.')
   if (bv.some(n => !String(f.examples[n] || '').trim())) errs.push('Give an example value for every body variable.')
+  if (f.headerType === 'IMAGE' && !f.image?.handle) errs.push('Upload the header image.')
   if (f.header.length > LIMITS.header) errs.push(`Header is longer than ${LIMITS.header} characters.`)
   const hv = varsIn(f.header)
   if (hv.length > 1 || (hv.length === 1 && hv[0] !== 1)) errs.push('Header can have only one variable, {{1}}.')
@@ -104,12 +112,32 @@ function validate(f, existing) {
 function TemplateForm({ existing, onCreated, onClose }) {
   const [f, setF] = useState(EMPTY)
   const [saving, setSaving] = useState(false)
+  const [uploading, setUploading] = useState(false)
   const bodyRef = useRef(null)
+  const imageRef = useRef(null)
   const set = (patch) => setF(prev => ({ ...prev, ...patch }))
   const bodyVars = varsIn(f.body)
   const errors = validate(f, existing)
 
-  const applyStarter = (s) => setF({ ...EMPTY, ...s, name: slug(s.title), footer: s.footer ?? EMPTY.footer, quickReplies: s.quickReplies || [] })
+  const applyStarter = (s) => setF(prev => ({
+    ...EMPTY, ...s, name: slug(s.title), footer: s.footer ?? EMPTY.footer, quickReplies: s.quickReplies || [],
+    // Keep an image already uploaded when switching between image starters.
+    image: s.headerType === 'IMAGE' ? prev.image : null,
+  }))
+
+  const pickImage = async (file) => {
+    if (!file) return
+    setUploading(true)
+    try {
+      const { url, handle } = await waUploadImage(file, { forTemplate: true })
+      set({ image: { url, handle, name: file.name } })
+    } catch (e) {
+      toast.error(e.message)
+    } finally {
+      setUploading(false)
+      if (imageRef.current) imageRef.current.value = ''
+    }
+  }
 
   const addVariable = () => {
     const n = (bodyVars[bodyVars.length - 1] || 0) + 1
@@ -125,7 +153,7 @@ function TemplateForm({ existing, onCreated, onClose }) {
     if (errors.length) return toast.error(errors[0])
     setSaving(true)
     try {
-      const res = await waCreateTemplate(toMeta(f))
+      const res = await waCreateTemplate(toMeta(f), f.headerType === 'IMAGE' ? f.image?.url : null)
       const st = res?.template?.status || 'PENDING'
       toast.success(st === 'APPROVED' ? 'Template approved' : 'Template sent to Meta for approval — usually takes a few minutes')
       onCreated()
@@ -175,10 +203,33 @@ function TemplateForm({ existing, onCreated, onClose }) {
             </div>
 
             <div className="form-field" style={{ marginTop: 12 }}>
-              <label>Header <span className="dim">(optional, bold first line · {f.header.length}/{LIMITS.header})</span></label>
-              <input className="glass-input" value={f.header} maxLength={LIMITS.header} placeholder="e.g. Umrah Packages Open" onChange={e => set({ header: e.target.value })} />
-              {varsIn(f.header).length > 0 && (
-                <input className="glass-input" style={{ marginTop: 6 }} value={f.headerExample} placeholder="Example for header {{1}}" onChange={e => set({ headerExample: e.target.value })} />
+              <label>Header</label>
+              <div className="wa-chips" style={{ marginTop: 0, marginBottom: 8 }}>
+                <button type="button" className={`wa-chip ${f.headerType === 'TEXT' ? 'active' : ''}`} onClick={() => set({ headerType: 'TEXT' })}><Type size={13} /> Text</button>
+                <button type="button" className={`wa-chip ${f.headerType === 'IMAGE' ? 'active' : ''}`} onClick={() => set({ headerType: 'IMAGE' })}><ImagePlus size={13} /> Image</button>
+              </div>
+              {f.headerType === 'TEXT' ? (
+                <>
+                  <input className="glass-input" value={f.header} maxLength={LIMITS.header} placeholder="Optional bold first line, e.g. Umrah Packages Open" onChange={e => set({ header: e.target.value })} />
+                  <span className="wa-hint">{f.header.length}/{LIMITS.header}</span>
+                  {varsIn(f.header).length > 0 && (
+                    <input className="glass-input" style={{ marginTop: 6 }} value={f.headerExample} placeholder="Example for header {{1}}" onChange={e => set({ headerExample: e.target.value })} />
+                  )}
+                </>
+              ) : (
+                <div className="wa-image-pick">
+                  <input ref={imageRef} type="file" accept="image/jpeg,image/png" hidden onChange={e => pickImage(e.target.files?.[0])} />
+                  {f.image && <img src={f.image.url} alt="" className="wa-image-thumb" />}
+                  <div>
+                    <button type="button" className="btn btn-ghost btn-sm" onClick={() => imageRef.current?.click()} disabled={uploading}>
+                      <ImagePlus size={14} /> {uploading ? 'Uploading…' : f.image ? 'Change image' : 'Upload image'}
+                    </button>
+                    <div className="wa-hint" style={{ marginTop: 4 }}>
+                      {f.image ? f.image.name : `JPG or PNG, up to ${MAX_IMAGE_MB} MB. A wide picture (about 1.9 : 1) looks best.`}
+                    </div>
+                    <div className="wa-hint">This picture is sent by default; you can change it for each campaign in Bulk Send.</div>
+                  </div>
+                </div>
               )}
             </div>
 
@@ -246,7 +297,7 @@ function TemplateForm({ existing, onCreated, onClose }) {
           </div>
 
           <div style={{ position: 'sticky', top: 86 }}>
-            <WaPreview template={preview} bodyValues={bodyValues} headerValues={{ 1: f.headerExample }} title="How customers will see it" />
+            <WaPreview template={preview} bodyValues={bodyValues} headerValues={{ 1: f.headerExample }} mediaUrl={f.image?.url} title="How customers will see it" />
             <p className="wa-hint" style={{ marginTop: 10 }}>
               Tips: Marketing templates are for offers and announcements; Utility is only for updates about an existing booking or payment —
               Meta may move a Utility template to Marketing if it contains promotional text.
@@ -262,11 +313,13 @@ export default function Templates({ onChanged }) {
   const [list, setList] = useState(null)
   const [error, setError] = useState('')
   const [creating, setCreating] = useState(false)
+  const [media, setMedia] = useState({})
   const admin = isAdmin()
 
   const load = useCallback(async () => {
     setError('')
     try { setList(await waTemplates(true)) } catch (e) { setList([]); setError(e.message) }
+    getTemplateMedia().then(setMedia).catch(() => {})
   }, [])
   useEffect(() => { load() }, [load])
 
@@ -314,7 +367,12 @@ export default function Templates({ onChanged }) {
                       <td><code className="wa-code">{p.name}</code></td>
                       <td>{(p.category || '').toLowerCase()}</td>
                       <td>{p.language}</td>
-                      <td><div className="wa-msg-body">{p.bodyText}</div></td>
+                      <td>
+                        {p.headerFormat === 'IMAGE' && (media[p.key]
+                          ? <img src={media[p.key]} alt="" className="wa-image-thumb sm" />
+                          : <div className="wa-hint"><ImagePlus size={12} /> image header</div>)}
+                        <div className="wa-msg-body">{p.bodyText}</div>
+                      </td>
                       <td>
                         <Pill tone={STATUS_TONE[raw.status] || 'gray'}>{(raw.status || '').toLowerCase()}</Pill>
                         {raw.status === 'REJECTED' && raw.rejected_reason && raw.rejected_reason !== 'NONE' && (
